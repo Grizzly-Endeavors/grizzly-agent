@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
+## Scope — read this before adding anything
+
+This crate is a dependency consumed by other projects. Its value comes from what it *refuses* to contain. A toolkit that accretes every useful thing becomes a framework, and a framework you have to fight is worse than the duplication it replaced.
+
+**The admission test is not "is this useful?"** — almost anything is. It is: **would a second project have written this the same way?** If two projects would need the same thing but shape it differently, what belongs here is the trait, not the implementation.
+
+A primitive is admitted when all three hold:
+
+1. **Two real consumers.** Not one consumer and a hypothetical. Speculative generality is how the kitchen sink starts.
+2. **No product decision baked in.** Which model, which storage, what a tool may do, what a good answer looks like — all belong to the consumer. If generalizing something means adding a config knob for a choice, that choice probably isn't ours to make.
+3. **The consumer can't do it better locally.** Some things are genuinely cheaper to write twice than to abstract once. Say so and move on.
+
+**Rejection is the normal outcome.** When something fails the test, the answer is "that belongs in the consumer" — not "let's add a feature flag for it." Record the close calls in `docs/decisions/`; a written "no" is what stops the same idea being re-litigated every few months.
+
 ## How to Operate
 
 ### Agent discipline
@@ -43,7 +57,7 @@ The orchestrating session runs `cargo fmt`, `cargo clippy`, and `cargo test --qu
 ## Build & Quality Gates
 
 ```sh
-cargo run                                    # run the binary
+cargo doc --no-deps --all-features           # read the public API you just changed
 cargo test --quiet                           # always --quiet; never plain cargo test
 cargo fmt --all                              # format
 cargo fmt --all -- --check                   # verify formatting
@@ -78,6 +92,8 @@ The `justfile` wraps these: `just test`, `just lint`, `just deny`, `just ci-loca
 
 - **Private-first**: start with no visibility modifier. Add `pub` only when there's a consumer that demands it. Prefer `pub(crate)` when the consumer is inside the same crate.
 - **Treat public as a commitment**: once something is public, it's API. The cheapest API change is the one you never made public in the first place.
+- **`pub` here reaches other repos.** In a binary, an over-wide `pub` costs nothing; in this crate it becomes something a consumer depends on and you can't take back without a coordinated update across every project that pulls it in. When unsure, keep it private — widening later is a non-event, narrowing is a breaking change.
+- **Re-export the public surface from `lib.rs`.** Consumers should write `grizzly_agent::Thing`, not `grizzly_agent::deeply::nested::module::Thing`. Curated `pub use` at the root means the internal module tree stays free to move.
 
 ## Testing
 
@@ -136,11 +152,12 @@ These rules are strict because this project is primarily developed with AI codin
 
 - **`unwrap_used`, `expect_used`, `panic`, `get_unwrap`**: no panics on untrusted input or error paths. Use `?`, `anyhow::Context`, or explicit handling.
 - **`todo`, `unimplemented`, `dbg_macro`**: no incomplete or debug code ships.
-- **`exit`**: only `main.rs` may call `std::process::exit`. Library code returns `Result`.
+- **`exit`**: nothing here may call `std::process::exit`. This crate is a dependency — terminating the host process is never its call to make. Return a `Result` and let the consumer decide.
 - **`indexing_slicing`, `string_slice`**: use `.get()` / slice-returning methods that produce `Option`.
 - **`map_err_ignore`, `let_underscore_must_use`**: no silent error swallowing.
 - **`error_impl_error`**: don't name a domain error type `Error`. It collides with every other crate's and reads as "the" error type.
 - **`missing_errors_doc`, `missing_panics_doc`, `must_use_candidate`**: public API must document its failure modes and must-use returns.
+- **`missing_docs`, `unreachable_pub`** (rustc, not clippy): this crate is consumed as a dependency, so its public surface *is* the product. An undocumented public item is a defect here in a way it isn't in a binary, and `unreachable_pub` mechanically catches a `pub` that no external path can reach — the usual sign the visibility was cargo-culted rather than chosen.
 - **`allow_attributes`, `allow_attributes_without_reason`**: every suppression uses `#[expect(..., reason = "...")]`, never `#[allow(...)]`. `#[expect]` warns when the suppression goes stale; `#[allow]` sits there forever.
 - **`tests_outside_test_module`**: tests live in `#[cfg(test)]` modules. Integration tests in `tests/` need the file-level escape below.
 - **`too_many_lines`**: keep functions short.
@@ -167,19 +184,18 @@ Test code may freely use `.unwrap()`, `.expect()`, `panic!`, and `dbg!` — the 
 
 ## Async
 
-- **Tokio is the default runtime.** `#[tokio::main]` in `main.rs`, `tokio::spawn` for background tasks, `tokio::select!` for concurrent I/O supervision.
+- **Tokio is the assumed runtime, but this crate never starts one.** A library that calls `Runtime::new` or `block_on` inside an async caller deadlocks it. Expose `async fn` and let the consumer's `#[tokio::main]` drive them. `tokio::spawn` and `tokio::select!` are fine *inside* an async fn — they require a running runtime, they don't create one.
 - **Async-first**: use async for I/O; fall back to sync only for CPU-bound or genuinely trivial operations.
 - **No blocking calls inside async functions.** Use `tokio::fs`, `tokio::process`, etc. If a blocking call is unavoidable, wrap it in `spawn_blocking`.
 - **Shared state**: wrap in `Arc<T>` with thread-safe interior mutability (`DashMap`, `Mutex`/`RwLock` when contention is low, channels for message passing).
 - **Graceful shutdown**: listen for `SIGINT`/`SIGTERM` via `tokio::signal`; let the `tokio::select!` in the main loop fall out on signal and drain in-flight work.
-- **Tracing init happens before anything else async starts.**
+- **Emit tracing events; never install a subscriber.** Choosing the subscriber is the consumer's call, which is why `tracing-subscriber` is a dev-dependency here and not a real one.
 
 ## Error Handling
 
-- **`anyhow::Result<T>`** at subsystem boundaries and inside binaries. Chain context with `.context("failed to load user settings")` so logs show the causal chain.
-- **`thiserror` enums** for domain errors that callers match against or that need to map to specific outcomes (HTTP status codes, exit codes, user-facing error kinds). Add `thiserror` when you have such a type — not before.
-- **`anyhow` wraps `thiserror`**: domain errors bubble up as typed errors; boundaries widen them to `anyhow::Error` with added context.
-- **`main.rs` is the only place that maps `Result` to exit code.** Every other function returns `Result`; the `exit` lint is denied elsewhere.
+- **The public API returns `thiserror` enums, never `anyhow::Error`.** This inverts the usual default, and it is the most important error rule in this repo. A consumer needs to distinguish "rate limited, back off and retry" from "malformed request, fixing the retry won't help" — an opaque `anyhow::Error` forces them to string-match the message to find out, which breaks the moment the wording changes. Typed errors are the difference between a library a caller can build a retry policy on and one they can only log.
+- **`anyhow` is fine internally.** Inside a private helper, chain context with `.context("failed to parse tool schema")` freely. It just may not reach the public boundary — convert to a typed variant on the way out.
+- **Preserve the cause.** Typed variants carry `#[source]` so the full chain survives conversion. Widening to a typed error must not flatten what went wrong into a string.
 - **No `.unwrap()` / `.expect()` outside of tests.** If you genuinely know a value is present, use `.expect("reason — invariant explanation")` inside a scoped `#[expect(clippy::expect_used, reason = "...")]` with a real reason.
 - **No silent error swallowing.** `let _ = ...` on a `Result` is denied; so is `.map_err(|_| ...)`. Every error either propagates or gets logged with context before being handled.
 
@@ -188,7 +204,7 @@ Test code may freely use `.unwrap()`, `.expect()`, `panic!`, and `dbg!` — the 
 - **`mod.rs`** primarily contains declarations and curated `pub use` re-exports. Module-level coordination logic is fine when it belongs there; gratuitous plumbing is not.
 - **Group related types in one file** (e.g. `Message`, `Role`, `ToolCall` together in `llm/types.rs`) rather than one-type-per-file.
 - **Shell vs core split**: IO-bound and framework-bound code (HTTP handlers, event loops, GUI callbacks) lives in a thin *shell* layer that calls into *pure* modules where all the logic is. The shell is usually not unit-tested; the pure modules are. If you find yourself adding logic to a shell module, move it into a pure module first and let the shell call the validated result.
-- **Binary vs library**: even binary crates keep a thin `main.rs` that delegates to a library module — this makes the logic testable and keeps `main.rs` at the "init tracing → dispatch → exit code" skeleton.
+- **There is no shell here.** This crate is all core — the shell belongs to the consumer. What would be a shell layer elsewhere (HTTP transport, process spawning, filesystem access) appears here as a *trait* the consumer implements, which is also what makes the logic testable without a network.
 - **Boundaries at the domain's joints.** Modules should divide where the problem divides, so a change to one concern touches one place. A boundary drawn because a file got long produces a `utils.rs` grab-bag; a boundary drawn at a real seam produces modules you can reason about alone.
 
 ## Test Organization (Rust)
@@ -211,7 +227,7 @@ mod tests;
 
 The `#[path]` attribute makes the loaded file a **child** of the impl module, so `use super::*;` retains full access to private items — no visibility inflation.
 
-See `src/config.rs` and `src/tests/config.rs` for a worked example.
+The `#[cfg(test)]` guard matters: without it the file is compiled into consumers' builds.
 
 ### Integration test boilerplate
 
@@ -238,7 +254,9 @@ Rust 2024 made `std::env::set_var` / `remove_var` `unsafe`. **Do not use them in
 - A public zero-arg function that reads the real process env (e.g. `Settings::from_process_env()`).
 - A public `_from_env` sibling taking an `EnvLookup<'_>` closure (e.g. `Settings::from_env(get)`).
 
-The zero-arg function calls the sibling with `&|k| std::env::var_os(k)`. Tests construct closures with fixed keys. `src/config.rs` implements this pattern.
+The zero-arg function calls the sibling with `&|k| std::env::var_os(k)`. Tests construct closures with fixed keys.
+
+This matters more here than in a binary: credential loading (`ANTHROPIC_API_KEY` and friends) is the main thing this crate reads from the environment, and a consumer must be able to bypass the process env entirely and supply a key from its own config or secret store. Every env read gets the closure sibling — no exceptions.
 
 ### Rationale
 

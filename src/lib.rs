@@ -1,27 +1,15 @@
-//! The binary is a thin shell over this library.
+//! Foundational primitives for building LLM agents in Rust.
 //!
-//! Keeping the work here rather than in `main.rs` means it can be tested
-//! without spawning a process. As the project grows, the shape to hold is:
-//! IO-bound and framework-bound code (HTTP handlers, event loops, GUI
-//! callbacks) stays in a thin *shell* layer that calls into *pure* modules
-//! where the logic lives. The shell is usually not unit-tested; the pure
-//! modules always are.
-
-pub mod config;
-
-use anyhow::Context as _;
-
-use crate::config::Settings;
-
-/// Run the application.
-///
-/// # Errors
-///
-/// Returns an error if settings cannot be read from the environment.
-pub fn run() -> anyhow::Result<()> {
-    let settings = Settings::from_process_env().context("failed to load settings")?;
-
-    tracing::info!(log_level = %settings.log_level, "starting");
-
-    Ok(())
-}
+//! This crate is a dependency, not an application. It provides the pieces an
+//! agent is assembled from — provider connectors, conversation types, tool
+//! definition and dispatch, the turn loop — and leaves policy to the consumer.
+//!
+//! # Scope
+//!
+//! The boundary is deliberate: a primitive belongs here when at least two
+//! independent projects need it and neither can define it better locally.
+//! Anything that encodes a product decision — which model to use, what a tool
+//! is allowed to do, how a conversation should be persisted — belongs in the
+//! consumer, behind a trait this crate defines but does not implement.
+//!
+//! `docs/decisions/` records the calls that were close.

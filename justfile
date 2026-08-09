@@ -5,12 +5,13 @@ set shell := ["bash", "-cu"]
 
 default: ci-local
 
-# Run the binary. Args after `--` go to the program: `just run --help`
-run *args:
-    cargo run -- {{ args }}
-
 test:
     cargo test --quiet
+
+# Build and open the API docs. This crate's public surface is its product, so
+# reading the rendered docs is part of reviewing a change to it.
+doc:
+    cargo doc --no-deps --all-features --open
 
 fmt:
     cargo fmt --all
