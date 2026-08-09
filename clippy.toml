@@ -15,3 +15,10 @@ allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-dbg-in-tests = true
+
+# Proper nouns that `doc_markdown` mistakes for code identifiers.
+#
+# Provider and format names appear constantly in this crate's docs as ordinary
+# prose, and backticking a company name reads as though it were a type. The
+# leading ".." keeps clippy's own default list rather than replacing it.
+doc-valid-idents = ["..", "OpenAI", "SKILL.md", "JsonSchema"]

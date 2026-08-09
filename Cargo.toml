@@ -6,15 +6,45 @@ publish = false
 description = "Foundational primitives for building LLM agents in Rust."
 repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 
+[features]
+default = []
+# The two provider clients. Each pulls in reqwest; a consumer bringing its own
+# provider takes neither and this crate makes no HTTP calls at all.
+anthropic = ["dep:reqwest"]
+openai = ["dep:reqwest"]
+# Agent Skills loading. Separate because it is the only thing needing a YAML parser.
+skills = ["dep:yaml-rust2"]
+
 [dependencies]
 anyhow = "1.0.104"
 tracing = "0.1.44"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+# The provider trait is object-safe (ADR-0005) so providers can be selected at
+# runtime and chained for failover. `async fn` in traits is not dyn-compatible,
+# so the boxing async-trait does is load-bearing, not convenience.
+async-trait = "0.1.92"
+# One params struct generates both the wire schema and the typed argument
+# parsing, so a tool's schema cannot drift from its handler (ADR-0006).
+schemars = "1.2.2"
+
+reqwest = { version = "0.13.4", optional = true, default-features = false, features = [
+    "json",
+    "rustls",
+    "http2",
+    "charset",
+] }
+# Chosen over the serde-integrated YAML crates because all of them are either
+# deprecated or pre-1.0 (ADR-0007). The six spec fields are mapped by hand.
+yaml-rust2 = { version = "0.11.0", optional = true }
 
 # A library emits tracing events; it does not choose the subscriber. Pulling
 # tracing-subscriber in as a normal dependency would force that choice on every
 # consumer, so it lives here for examples and tests only.
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }
 
 # Lint configuration
 #
