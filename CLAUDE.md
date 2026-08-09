@@ -16,6 +16,18 @@ A primitive is admitted when all three hold:
 
 **Rejection is the normal outcome.** When something fails the test, the answer is "that belongs in the consumer" — not "let's add a feature flag for it." Record the close calls in `docs/decisions/`; a written "no" is what stops the same idea being re-litigated every few months.
 
+### Already decided — do not reopen without the user
+
+These questions are closed. If you find yourself about to add one of them, read the ADR first; each was considered on evidence and rejected for a stated reason.
+
+- **MCP is out permanently** ([ADR-0002](docs/decisions/0002-no-mcp.md)). Consumers use `rmcp` directly. Do not add an MCP client, an MCP feature flag, or an `rmcp` re-export. The `ToolProvider` trait must stay good enough that an `rmcp` adapter is trivial to write *in the consumer* — if that adapter would be awkward, fix the trait, not this boundary.
+- **No streaming** ([ADR-0003](docs/decisions/0003-no-streaming.md)). The provider trait is request/response. Do not add `complete_stream`, and do not make `complete` return a stream that usually yields one item.
+- **No tokenizer, and no `chars / 4` helper** ([ADR-0004](docs/decisions/0004-provider-reported-token-counts.md)). Report the provider's counts. Every `Usage` field stays `Option` — an absent count must never be coerced to zero, because that turns "unknown cost" into "free."
+- **Memory and retrieval are deferred, not rejected.** They land after v1 behind a feature flag. Don't start them early, and don't let a smaller piece of them arrive by accident.
+- **Skills follow the published Agent Skills standard.** Match the spec; do not invent fields or diverge for convenience.
+
+`docs/design/primitive-index.md` is the survey these decisions were made from — a snapshot, not a live inventory. Cite it as evidence; don't maintain it.
+
 ## How to Operate
 
 ### Agent discipline
