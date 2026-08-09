@@ -3,10 +3,17 @@ name = "grizzly-agent"
 version = "0.1.0"
 edition = "2024"
 publish = false
+description = "Foundational primitives for building LLM agents in Rust."
+repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 
 [dependencies]
 anyhow = "1.0.104"
 tracing = "0.1.44"
+
+# A library emits tracing events; it does not choose the subscriber. Pulling
+# tracing-subscriber in as a normal dependency would force that choice on every
+# consumer, so it lives here for examples and tests only.
+[dev-dependencies]
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 # Lint configuration
@@ -24,6 +31,13 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 # deny rather than forbid so FFI boundaries can use a targeted
 # #[expect(unsafe_code, reason = "...")] — forbid cannot be overridden at the item level.
 unsafe_code = "deny"
+
+# This crate is consumed as a dependency, so its public surface is its product.
+# Undocumented public items are a defect here in a way they are not in a binary.
+missing_docs = "deny"
+# Mechanically enforces the private-first rule: `pub` on an item that no
+# external path can actually reach is a sign the visibility was cargo-culted.
+unreachable_pub = "deny"
 
 [lints.clippy]
 # Pedantic baseline. Kept at warn (not deny) because new clippy versions
