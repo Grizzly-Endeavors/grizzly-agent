@@ -1,0 +1,174 @@
+//! Failure types for the public API.
+//!
+//! Two of these exist for a reason worth stating: a tool that fails and a turn
+//! that fails are different events. A tool failure is ordinary conversation — the
+//! model reads the message and adapts — so [`ToolFailure`] converts into a
+//! [`crate::message::ToolResult`] and the loop continues. A [`TurnFailure`] means
+//! the loop cannot proceed. `job-finder` maintained this split by catching every
+//! exception at each call site and remembering to; here the types enforce it.
+
+use crate::message::ToolResult;
+
+/// Why a call to a model provider failed.
+///
+/// Callers match on this to decide whether retrying can help, which is why it is
+/// an enum rather than an opaque error. See [`ProviderFailure::is_retryable`].
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ProviderFailure {
+    /// The request never reached the provider, or the response never arrived.
+    #[error("transport failure contacting {provider}")]
+    Transport {
+        /// Which provider was being called.
+        provider: String,
+        /// The underlying cause.
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
+
+    /// The provider answered with an error status.
+    #[error("{provider} returned HTTP {status}: {message}")]
+    Status {
+        /// Which provider answered.
+        provider: String,
+        /// The HTTP status code.
+        status: u16,
+        /// The provider's error message, passed through unchanged.
+        message: String,
+        /// How long the provider asked us to wait, from `Retry-After` if present.
+        retry_after: Option<std::time::Duration>,
+    },
+
+    /// The response arrived but could not be understood.
+    ///
+    /// Distinct from [`ProviderFailure::Status`] because retrying an identical
+    /// request will produce the same unparseable response.
+    #[error("could not decode {provider} response")]
+    Decode {
+        /// Which provider answered.
+        provider: String,
+        /// The underlying cause.
+        #[source]
+        source: serde_json::Error,
+    },
+
+    /// Credentials are missing or malformed, detected before any request.
+    #[error("{0}")]
+    Configuration(String),
+}
+
+impl ProviderFailure {
+    /// Whether retrying the identical request could plausibly succeed.
+    ///
+    /// Classification is structural — transport failures, 408, 429, and 5xx —
+    /// rather than substring-matched against the error message. `residuum` and
+    /// `Ursix` both sniff for `"rate"`, `"429"`, and `"503"` in error text, which
+    /// silently stops working when a provider rewords a message.
+    #[must_use]
+    pub fn is_retryable(&self) -> bool {
+        match self {
+            Self::Transport { .. } => true,
+            Self::Status { status, .. } => {
+                matches!(status, 408 | 429) || (500..600).contains(status)
+            }
+            Self::Decode { .. } | Self::Configuration(_) => false,
+        }
+    }
+
+    /// How long the provider asked us to wait, if it said.
+    ///
+    /// A server's own `Retry-After` beats any backoff this crate would compute.
+    #[must_use]
+    pub fn retry_after(&self) -> Option<std::time::Duration> {
+        match self {
+            Self::Status { retry_after, .. } => *retry_after,
+            Self::Transport { .. } | Self::Decode { .. } | Self::Configuration(_) => None,
+        }
+    }
+}
+
+/// Why a tool did not produce a useful result.
+///
+/// This is not a loop-ending error. Every variant renders to text the model reads
+/// and can act on, via [`ToolFailure::into_result`].
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ToolFailure {
+    /// The model asked for a tool that is not registered.
+    #[error("no tool named `{name}`")]
+    Unknown {
+        /// The name the model used.
+        name: String,
+        /// Registered names, so the message can suggest alternatives.
+        available: Vec<String>,
+    },
+
+    /// The arguments did not match the tool's schema.
+    ///
+    /// The message is written to be read *by the model* as a correction, which is
+    /// what makes a retry converge rather than repeat.
+    #[error("invalid arguments for `{name}`: {reason}")]
+    InvalidArguments {
+        /// Which tool was called.
+        name: String,
+        /// What was wrong, phrased as an instruction.
+        reason: String,
+    },
+
+    /// The tool ran and failed.
+    #[error("`{name}` failed: {message}")]
+    Execution {
+        /// Which tool ran.
+        name: String,
+        /// What went wrong, in terms the model can act on.
+        message: String,
+    },
+}
+
+impl ToolFailure {
+    /// Render this failure as the tool result the model will read.
+    #[must_use]
+    pub fn into_result(self, tool_use_id: impl Into<String>) -> ToolResult {
+        ToolResult {
+            tool_use_id: tool_use_id.into(),
+            content: self.to_string(),
+            is_error: true,
+        }
+    }
+}
+
+/// Why a turn could not continue.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum TurnFailure {
+    /// The provider failed in a way the turn cannot absorb.
+    #[error("provider call failed")]
+    Provider(#[from] ProviderFailure),
+
+    /// The turn hit its round budget without the model producing a final answer.
+    ///
+    /// Carries the budget so a caller can distinguish "needs a longer leash" from
+    /// "is looping," and escalate accordingly.
+    #[error("turn exhausted its budget of {rounds} rounds without a final answer")]
+    BudgetExhausted {
+        /// The budget that was spent.
+        rounds: usize,
+    },
+
+    /// The model repeated the same tool call with the same arguments enough times
+    /// to establish it is not making progress.
+    ///
+    /// `notes-reorg` catches this with a repeat counter; `job-finder`'s wall-clock
+    /// idle timer misses it entirely, because an unproductive loop returns fast.
+    #[error("turn stalled: `{tool}` called {count} times with identical arguments")]
+    Stalled {
+        /// The tool being repeated.
+        tool: String,
+        /// How many identical calls were seen.
+        count: usize,
+    },
+}
+
+#[cfg(test)]
+#[path = "tests/error.rs"]
+mod tests;

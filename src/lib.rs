@@ -1,15 +1,23 @@
 //! Foundational primitives for building LLM agents in Rust.
 //!
 //! This crate is a dependency, not an application. It provides the pieces an
-//! agent is assembled from — provider connectors, conversation types, tool
-//! definition and dispatch, the turn loop — and leaves policy to the consumer.
+//! agent is assembled from and leaves policy to the consumer.
 //!
 //! # Scope
 //!
-//! The boundary is deliberate: a primitive belongs here when at least two
-//! independent projects need it and neither can define it better locally.
-//! Anything that encodes a product decision — which model to use, what a tool
-//! is allowed to do, how a conversation should be persisted — belongs in the
-//! consumer, behind a trait this crate defines but does not implement.
+//! The boundary is deliberate: a primitive belongs here when two real projects
+//! need it, it embeds no product decision, and neither project could define it
+//! better locally. Anything encoding a product decision — which model, what a
+//! tool may do, how a conversation is persisted — belongs in the consumer,
+//! behind a trait this crate defines but does not implement.
 //!
-//! `docs/decisions/` records the calls that were close.
+//! Some things are deliberately absent, each with a recorded reason in
+//! `docs/decisions/`: MCP (use `rmcp` directly), streaming, and token counting
+//! (providers report exact counts; this crate passes them through rather than
+//! estimating).
+
+mod error;
+mod message;
+
+pub use crate::error::{ProviderFailure, ToolFailure, TurnFailure};
+pub use crate::message::{Content, Message, Role, ToolResult, ToolUse};
