@@ -4,13 +4,23 @@ Foundational primitives for building LLM agents in Rust. It is a dependency, not
 
 ## Scope
 
-The boundary is the whole point of this crate, so it is stated up front:
+The boundary is the whole point of this crate, so it is stated up front.
 
-**In scope** — a primitive earns a place here when at least two independent projects need it and neither can define it better locally. Provider connectors, conversation and content types, tool definition and dispatch, the turn loop, and the traits that let a consumer plug in its own storage and policy.
+The test for a proposed addition is not "would this be useful?" — almost anything would. It is **"would a second project have written this the same way?"** A primitive is admitted only when two real consumers need it, it embeds no product decision, and the consumer could not do it better locally. Where two projects need the same thing but shape it differently, what belongs here is the trait, not the implementation. [ADR-0001](docs/decisions/0001-scope-boundary.md) has the reasoning; [`docs/design/primitive-index.md`](docs/design/primitive-index.md) is the evidence it was decided from.
 
-**Out of scope** — anything that encodes a product decision. Which model to use, what a tool is allowed to do, how a conversation is persisted, what a good answer looks like. Those belong in the consumer, behind a trait this crate defines but does not implement.
+**In v1** — provider connectors, message and conversation types, typed errors, retry and backoff, the turn loop, tool definition and dispatch, structured output, and skills.
 
-The test for a proposed addition is not "would this be useful?" — almost anything would. It is "would a second project have written this the same way?" If the answer is no, it belongs in the project that needs it.
+**Deliberately out**, each with a recorded reason so the question closes instead of recurring:
+
+| Not here | Why |
+| --- | --- |
+| MCP | Permanent. Depend on `rmcp` directly — a wrapper adds nothing. ([ADR-0002](docs/decisions/0002-no-mcp.md)) |
+| Streaming | No consumer streams today, and a speculative seam guessed wrong is worse than none. ([ADR-0003](docs/decisions/0003-no-streaming.md)) |
+| Token counting | Providers already return exact counts; this crate reports them rather than estimating. ([ADR-0004](docs/decisions/0004-provider-reported-token-counts.md)) |
+| Memory and retrieval | Deferred, not rejected. Lands after v1 behind a feature flag. |
+| Evaluation harness | No proven shape to extract yet. |
+
+Anything encoding a product decision — which model, what a tool may do, how a conversation is persisted, what a good answer looks like — belongs in the consumer, behind a trait this crate defines but does not implement.
 
 ## Use it
 
