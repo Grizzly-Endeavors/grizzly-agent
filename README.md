@@ -18,14 +18,15 @@ Anything encoding a product decision — which model, what a tool may do, how a 
 
 ## Workspace
 
-This repository is a Cargo workspace; every member is versioned together. Two packages exist today:
+This repository is a Cargo workspace; every member is versioned together. Three packages exist today:
 
 | Package | Responsibility |
 | --- | --- |
 | `grizzly-agent` | **Facade.** Re-exports the runtime crates behind features. The one line a consumer adds for runtime use. |
-| `grizzly-agent-core` | Conversation types and the error taxonomy. No HTTP. |
+| `grizzly-agent-core` | Conversation types, the error taxonomy, and the tool model. No HTTP. |
+| `grizzly-agent-prompts` | Prompt-file frontmatter parsing (default), codegen (`codegen` feature, a build-dependency), and call-site verification (`verify` feature, a dev-dependency). Does not depend on core. |
 
-The rest of the workspace — provider clients, prompt compilation, a tool model and turn loop, Agent Skills, and an eval harness — lands incrementally on top of this foundation, per the design and phase plan in [`docs/design/workspace/`](docs/design/workspace/). Lints, toolchain, and deny policy live once at the workspace root; every member inherits the lint table unchanged via `lints.workspace = true`.
+The rest of the workspace — provider clients, a turn loop, Agent Skills, and an eval harness — lands incrementally on top of this foundation, per the design and phase plan in [`docs/design/workspace/`](docs/design/workspace/). Lints, toolchain, and deny policy live once at the workspace root; every member inherits the lint table unchanged via `lints.workspace = true`.
 
 **Consumption rule.** A consumer depending on more than one workspace member — for example the facade for runtime use and `grizzly-agent-prompts` on its build edge — must point every member at the same git revision. Cargo otherwise resolves two copies of `grizzly-agent-core`, and a generated `ToolSpec` from one copy will not type-check against the facade's re-export from the other.
 

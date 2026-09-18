@@ -52,7 +52,7 @@ The `justfile` wraps these: `just test`, `just lint`, `just deny`, `just ci-loca
 
 ## Workspace Layout
 
-Members live under `crates/`: `crates/grizzly-agent` (the facade, re-exporting the runtime crates behind features) and `crates/grizzly-agent-core` (conversation types and the error taxonomy; no HTTP), with more members landing as the crate grows per `docs/design/workspace/`. The lint table, toolchain pin, and deny policy live once at the workspace root; every member's `Cargo.toml` inherits it unchanged with `lints.workspace = true` and pulls shared dependency versions from `[workspace.dependencies]`. A member's own `[dependencies]` lists only what that crate actually uses — the facade takes on a new runtime dependency only when the crate providing it exists and one of the facade's features enables it.
+Members live under `crates/`: `crates/grizzly-agent` (the facade, re-exporting the runtime crates behind features), `crates/grizzly-agent-core` (conversation types, the error taxonomy, and the tool model; no HTTP), and `crates/grizzly-agent-prompts` (prompt-file frontmatter parsing, codegen, and call-site verification; does not depend on core), with more members landing as the crate grows per `docs/design/workspace/`. The lint table, toolchain pin, and deny policy live once at the workspace root; every member's `Cargo.toml` inherits it unchanged with `lints.workspace = true` and pulls shared dependency versions from `[workspace.dependencies]`. A member's own `[dependencies]` lists only what that crate actually uses — the facade takes on a new runtime dependency only when the crate providing it exists and one of the facade's features enables it.
 
 ## Naming
 
