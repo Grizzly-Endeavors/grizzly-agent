@@ -401,6 +401,76 @@ async fn response_eval_runner_is_reachable_through_the_facade() {
     );
 }
 
+#[cfg(all(feature = "eval", feature = "test-support"))]
+#[tokio::test]
+async fn agent_eval_runner_is_reachable_through_the_facade() {
+    use grizzly_agent::{AgentEvalCase, AgentEvalRunner, CaseMeta, CheckResult, Verdict};
+
+    use grizzly_agent::{ScriptedProvider, ScriptedResponse};
+
+    struct AlwaysCompletes {
+        meta: CaseMeta,
+    }
+
+    #[async_trait::async_trait]
+    impl AgentEvalCase for AlwaysCompletes {
+        type Environment = ();
+
+        fn meta(&self) -> &CaseMeta {
+            &self.meta
+        }
+
+        fn build_agent(&self) -> Agent {
+            let provider = ScriptedProvider::new(vec![ScriptedResponse::Completion(Completion {
+                content: vec![Content::Text("done".to_owned())],
+                usage: Usage::default(),
+                stop_reason: StopReason::EndOfTurn,
+                raw_stop_reason: "stop".to_owned(),
+                model: "scripted-model".to_owned(),
+            })]);
+            Agent::builder(
+                Model::builder(Arc::new(provider), "scripted-model").build(),
+                ToolSet::new(Vec::<Box<dyn ToolHandler>>::new())
+                    .expect("no tools registers cleanly"),
+            )
+            .build()
+        }
+
+        async fn set_up(&self) -> Result<((), Vec<Message>), String> {
+            Ok(((), vec![Message::user("hi")]))
+        }
+
+        async fn check(&self, (): &()) -> Result<Vec<CheckResult>, String> {
+            Ok(Vec::new())
+        }
+
+        fn score(&self, record: &RunRecord, _checks: &[CheckResult]) -> Verdict {
+            if record.reply.as_deref() == Some("done") {
+                Verdict::pass("agent said done")
+            } else {
+                Verdict::wrong("agent did not say done")
+            }
+        }
+    }
+
+    let case = AlwaysCompletes {
+        meta: CaseMeta {
+            repeats: Some(1),
+            ..CaseMeta::new("facade-agent-eval")
+        },
+    };
+    let runner = AgentEvalRunner::builder().build();
+
+    let reports = runner.run(std::slice::from_ref(&case)).await;
+    let report = reports
+        .first()
+        .expect("the facade's AgentEvalRunner must produce one report per case");
+    assert_eq!(
+        report.aggregate.passes, 1,
+        "the facade's AgentEvalRunner must run the case and record its pass"
+    );
+}
+
 #[cfg(feature = "test-support")]
 #[tokio::test]
 async fn scripted_provider_is_reachable_through_the_facade() {

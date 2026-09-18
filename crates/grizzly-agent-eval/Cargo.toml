@@ -14,14 +14,19 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 futures-util = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
+tokio-util = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
+# Desugars the object-safe async AgentEvalCase trait (set up and check are
+# both async).
+async-trait = { workspace = true }
 
 [dev-dependencies]
 grizzly-agent-core = { workspace = true, features = ["test-support"] }
-async-trait = { workspace = true }
 tracing-subscriber = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+# AgentEval test scratch directories.
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

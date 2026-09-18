@@ -141,8 +141,17 @@ pub use grizzly_agent_core::ScriptedResponse;
 #[doc(hidden)]
 pub use grizzly_agent_core::serde_json;
 
-// ResponseEval and the shared eval core: case metadata, verdicts,
-// aggregation, and the report both ResponseEval and AgentEval feed.
+// ResponseEval, AgentEval, and the shared eval core: case metadata,
+// verdicts, aggregation, and the report both feed.
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::AgentEvalCase;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::AgentEvalRunner;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::AgentEvalRunnerBuilder;
 #[cfg(feature = "eval")]
 #[doc(inline)]
 pub use grizzly_agent_eval::CaseAggregate;
