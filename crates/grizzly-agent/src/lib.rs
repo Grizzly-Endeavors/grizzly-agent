@@ -30,9 +30,9 @@ pub use grizzly_agent_core::ToolUse;
 #[doc(inline)]
 pub use grizzly_agent_core::ProviderFailure;
 #[doc(inline)]
-pub use grizzly_agent_core::ToolFailure;
+pub use grizzly_agent_core::RunFailure;
 #[doc(inline)]
-pub use grizzly_agent_core::TurnFailure;
+pub use grizzly_agent_core::ToolFailure;
 
 // The tool model. Unconditional for the same reason: dispatching tools
 // through a `ToolSet` needs no provider, skill, or eval feature.
@@ -82,6 +82,32 @@ pub use grizzly_agent_core::RetryPolicy;
 pub use grizzly_agent_core::StopReason;
 #[doc(inline)]
 pub use grizzly_agent_core::Usage;
+
+// The turn loop and `Agent`. Unconditional: the loop needs no provider,
+// skill, or eval feature — only a `Model` and a `ToolSet`, both already
+// unconditional above.
+#[doc(inline)]
+pub use grizzly_agent_core::Agent;
+#[doc(inline)]
+pub use grizzly_agent_core::AgentBuilder;
+#[doc(inline)]
+pub use grizzly_agent_core::DynamicSection;
+#[doc(inline)]
+pub use grizzly_agent_core::Limits;
+#[doc(inline)]
+pub use grizzly_agent_core::RoundRecord;
+#[doc(inline)]
+pub use grizzly_agent_core::RunEnding;
+#[doc(inline)]
+pub use grizzly_agent_core::RunObserver;
+#[doc(inline)]
+pub use grizzly_agent_core::RunRecord;
+#[doc(inline)]
+pub use grizzly_agent_core::RunTrace;
+#[doc(inline)]
+pub use grizzly_agent_core::SystemSection;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolCallRecord;
 
 // The scripted provider. Forwarded from core's `test-support` feature.
 #[cfg(feature = "test-support")]

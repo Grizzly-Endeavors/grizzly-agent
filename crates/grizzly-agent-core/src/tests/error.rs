@@ -1,8 +1,11 @@
 //! Tests for [`super`].
 
+use std::error::Error as _;
 use std::time::Duration;
 
-use super::{ProviderFailure, ToolFailure, TurnFailure};
+use super::{ProviderFailure, RunFailure, ToolFailure};
+use crate::agent::RunTrace;
+use crate::completion::Usage;
 
 fn status(code: u16) -> ProviderFailure {
     ProviderFailure::Status {
@@ -159,11 +162,36 @@ fn an_invalid_request_is_never_retryable_and_carries_no_retry_after() {
 }
 
 #[test]
-fn a_turn_failure_wraps_the_provider_failure_that_caused_it() {
-    let failure = TurnFailure::from(status(503));
+fn a_run_failure_wraps_the_provider_failure_as_its_source() {
+    let trace = RunTrace {
+        messages: Vec::new(),
+        rounds: Vec::new(),
+        total_usage: Usage::default(),
+    };
+    let failure = RunFailure::Provider {
+        source: status(503),
+        trace: Box::new(trace),
+    };
+
+    let source = failure
+        .source()
+        .expect("a provider failure must be attached as the source");
+    assert!(
+        source.to_string().contains("503"),
+        "the wrapped provider failure must survive unchanged, got: {source}"
+    );
+}
+
+#[test]
+fn an_invalid_conversation_names_the_broken_rule() {
+    let failure = RunFailure::InvalidConversation {
+        reason: "system messages must appear only at the head".to_owned(),
+    };
 
     assert!(
-        matches!(failure, TurnFailure::Provider(inner) if inner.is_retryable()),
-        "the wrapped provider failure must survive the conversion unchanged"
+        failure
+            .to_string()
+            .contains("system messages must appear only at the head"),
+        "the message must name the rule that broke, got: {failure}"
     );
 }

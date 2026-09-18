@@ -9,14 +9,17 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use grizzly_agent::{
-    Completion, CompletionAccumulator, CompletionEvent, CompletionRequest, CompletionStream,
-    Content, DuplicateToolName, Message, Model, ModelBuilder, NoParams, Provider, ProviderFailure,
-    ResponseFormat, RetryPolicy, Role, StopReason, StopRequest, ToolContext, ToolDefinition,
-    ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse, TurnFailure,
-    TypedToolHandler, Usage,
-};
 use std::borrow::Cow;
+use std::sync::Mutex;
+
+use grizzly_agent::{
+    Agent, AgentBuilder, Completion, CompletionAccumulator, CompletionEvent, CompletionRequest,
+    CompletionStream, Content, DuplicateToolName, DynamicSection, Limits, Message, Model,
+    ModelBuilder, NoParams, Provider, ProviderFailure, ResponseFormat, RetryPolicy, Role,
+    RoundRecord, RunEnding, RunFailure, RunObserver, RunRecord, RunTrace, StopReason, StopRequest,
+    SystemSection, ToolCallRecord, ToolContext, ToolDefinition, ToolFailure, ToolHandler,
+    ToolResult, ToolSet, ToolSpec, ToolUse, TypedToolHandler, Usage,
+};
 
 #[test]
 fn conversation_types_are_reachable_through_the_facade() {
@@ -51,20 +54,35 @@ fn conversation_types_are_reachable_through_the_facade() {
 
 #[test]
 fn error_types_are_reachable_through_the_facade() {
-    let provider_failure = ProviderFailure::InvalidRequest("bad request".to_owned());
     let tool_failure = ToolFailure::Unknown {
         name: "missing".to_owned(),
         available: Vec::new(),
     };
-    let turn_failure = TurnFailure::from(provider_failure);
+    let run_failure = RunFailure::InvalidConversation {
+        reason: "system messages must appear only at the head".to_owned(),
+    };
 
     assert!(
-        matches!(turn_failure, TurnFailure::Provider(_)),
-        "the facade must re-export TurnFailure and ProviderFailure together"
+        matches!(run_failure, RunFailure::InvalidConversation { .. }),
+        "the facade must re-export RunFailure"
     );
     assert!(
         tool_failure.into_result("call-1").is_error,
         "the facade must re-export ToolFailure"
+    );
+
+    let provider_failure = ProviderFailure::InvalidRequest("bad request".to_owned());
+    let wrapped = RunFailure::Provider {
+        source: provider_failure,
+        trace: Box::new(RunTrace {
+            messages: Vec::new(),
+            rounds: Vec::new(),
+            total_usage: Usage::default(),
+        }),
+    };
+    assert!(
+        matches!(wrapped, RunFailure::Provider { .. }),
+        "the facade must re-export RunFailure and ProviderFailure together"
     );
 }
 
@@ -416,5 +434,123 @@ fn the_hidden_serde_json_re_export_is_reachable_through_the_facade() {
         value,
         serde_json::json!({"ok": true}),
         "the facade must re-export the same serde_json codegen depends on"
+    );
+}
+
+struct StaticMood;
+
+impl DynamicSection for StaticMood {
+    fn render(&self) -> String {
+        "current mood: chill".to_owned()
+    }
+}
+
+struct RecordingObserver {
+    events: Mutex<Vec<CompletionEvent>>,
+    rounds: Mutex<Vec<RoundRecord>>,
+    tool_calls: Mutex<Vec<ToolCallRecord>>,
+}
+
+#[async_trait::async_trait]
+impl RunObserver for RecordingObserver {
+    async fn on_event(&self, event: &CompletionEvent) {
+        self.events
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(event.clone());
+    }
+
+    async fn on_round(&self, round: &RoundRecord) {
+        self.rounds
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(round.clone());
+    }
+
+    async fn on_tool_call(&self, call: &ToolCallRecord) {
+        self.tool_calls
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(call.clone());
+    }
+}
+
+/// Takes and returns an [`AgentBuilder`] by name, so this test genuinely
+/// references the type rather than only ever inferring it.
+fn configure_agent(builder: AgentBuilder) -> AgentBuilder {
+    builder
+        .section("static preamble")
+        .section(SystemSection::dynamic(StaticMood))
+        .limits(Limits {
+            round_limit: 4,
+            stall_threshold: 4,
+        })
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn the_turn_loop_and_agent_are_reachable_through_the_facade() {
+    use grizzly_agent::{ScriptedProvider, ScriptedResponse};
+
+    let tool_round = Completion {
+        content: vec![Content::ToolUse(ToolUse {
+            id: "call-1".to_owned(),
+            name: "echo".to_owned(),
+            input: serde_json::json!({}),
+        })],
+        usage: Usage {
+            input_tokens: Some(10),
+            output_tokens: Some(2),
+        },
+        stop_reason: StopReason::ToolUse,
+        raw_stop_reason: "tool_use".to_owned(),
+        model: "scripted-model".to_owned(),
+    };
+    let final_round = Completion {
+        content: vec![Content::Text("hi there".to_owned())],
+        usage: Usage {
+            input_tokens: Some(5),
+            output_tokens: Some(1),
+        },
+        stop_reason: StopReason::EndOfTurn,
+        raw_stop_reason: "stop".to_owned(),
+        model: "scripted-model".to_owned(),
+    };
+    let provider = ScriptedProvider::new(vec![
+        ScriptedResponse::Completion(tool_round),
+        ScriptedResponse::Completion(final_round),
+    ]);
+    let model = Model::builder(Arc::new(provider), "scripted-model").build();
+
+    let tools = ToolSet::new([Box::new(EchoTool) as Box<dyn ToolHandler>])
+        .expect("a single tool registers cleanly");
+
+    let agent = configure_agent(Agent::builder(model, tools)).build();
+
+    let observer = RecordingObserver {
+        events: Mutex::new(Vec::new()),
+        rounds: Mutex::new(Vec::new()),
+        tool_calls: Mutex::new(Vec::new()),
+    };
+
+    let record: RunRecord = agent
+        .run(
+            vec![Message::user("hello")],
+            tokio_util::sync::CancellationToken::new(),
+            Some(Box::new(observer)),
+        )
+        .await
+        .expect("a scripted, tool-using run must complete through the facade");
+
+    assert_eq!(
+        record.ending,
+        RunEnding::Completed,
+        "the facade must re-export RunEnding and a working turn loop"
+    );
+    assert_eq!(record.reply.as_deref(), Some("hi there"));
+    assert_eq!(
+        record.trace.rounds.len(),
+        2,
+        "the facade must re-export RunRecord and RunTrace with populated round records"
     );
 }

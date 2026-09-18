@@ -1,12 +1,15 @@
 //! Failure types for the public API.
 //!
-//! Two of these exist for a reason worth stating: a tool that fails and a turn
-//! that fails are different events. A tool failure is ordinary conversation — the
-//! model reads the message and adapts — so [`ToolFailure`] converts into a
-//! [`crate::message::ToolResult`] and the loop continues. A [`TurnFailure`] means
-//! the loop cannot proceed. `job-finder` maintained this split by catching every
-//! exception at each call site and remembering to; here the types enforce it.
+//! Three of these exist for a reason worth stating: a tool that fails, a call
+//! that fails, and a run that cannot be carried out are different events. A
+//! tool failure is ordinary conversation — the model reads the message and
+//! adapts — so [`ToolFailure`] converts into a [`crate::message::ToolResult`]
+//! and the loop continues. A [`RunFailure`] means the loop cannot proceed:
+//! the system broke, as distinct from the agent behaving in some way.
+//! `job-finder` maintained this split by catching every exception at each
+//! call site and remembering to; here the types enforce it.
 
+use crate::agent::RunTrace;
 use crate::message::ToolResult;
 
 /// Why a call to a model provider failed.
@@ -147,17 +150,40 @@ impl ToolFailure {
     }
 }
 
-/// Why a turn could not continue.
+/// Why a run could not be carried out.
 ///
-/// Running out of rounds and stalling are not turn failures — they are run
-/// endings the turn loop produces, describing what the agent did rather than
-/// a breakage. Only a provider failure means the system itself broke.
+/// Running out of rounds and stalling are not run failures — they are run
+/// endings the turn loop produces on [`crate::RunRecord`], describing what
+/// the agent did rather than a breakage. Only an invalid conversation or a
+/// provider failure means the system itself broke, which is why this is a
+/// closed, two-variant enum rather than one open to future classification
+/// like [`ProviderFailure`] and [`ToolFailure`].
 #[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum TurnFailure {
-    /// The provider failed in a way the turn cannot absorb.
+pub enum RunFailure {
+    /// The conversation `Agent::run` was given broke a rule, caught before
+    /// any work began.
+    #[error("invalid conversation: {reason}")]
+    InvalidConversation {
+        /// The rule the conversation broke.
+        reason: String,
+    },
+
+    /// A model call failed in a way retries could not recover from.
+    ///
+    /// Carries every round the run completed before the failure, so a
+    /// caller that persists transcripts loses nothing by taking `trace` out
+    /// of the error before propagating it.
     #[error("provider call failed")]
-    Provider(#[from] ProviderFailure),
+    Provider {
+        /// The underlying provider failure. `RunFailure`'s [`std::error::Error::source`]
+        /// is this, so the cause chain works with `?` and `anyhow`.
+        #[source]
+        source: ProviderFailure,
+        /// Every round the run completed before the failure. Boxed to keep
+        /// this variant from ballooning `RunFailure`'s size on every `Result`
+        /// that returns it.
+        trace: Box<RunTrace>,
+    },
 }
 
 #[cfg(test)]
