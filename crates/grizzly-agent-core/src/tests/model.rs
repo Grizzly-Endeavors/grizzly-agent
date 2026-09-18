@@ -215,13 +215,18 @@ async fn complete_times_out_across_retries() {
         std::iter::repeat_with(|| ScriptedResponse::PreStreamFailure(sample_transport_failure()))
             .take(10),
     );
+    // `identity_jitter` keeps each retry wait at exactly the 1s cap; the
+    // model timeout is set to 2.5s — inside a retry wait rather than on a
+    // 1s boundary — so the model timeout always wins the race against the
+    // in-flight retry sleep instead of racing it on a tie.
     let model = Model::builder(Arc::new(provider), "test-model")
         .retry_policy(RetryPolicy::new(
             10,
             Duration::from_secs(1),
             Duration::from_secs(1),
         ))
-        .timeout(Duration::from_secs(3))
+        .timeout(Duration::from_millis(2500))
+        .with_jitter(identity_jitter())
         .build();
 
     let error = model
