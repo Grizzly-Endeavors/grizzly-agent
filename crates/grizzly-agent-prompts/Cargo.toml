@@ -1,0 +1,40 @@
+[package]
+name = "grizzly-agent-prompts"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+repository.workspace = true
+description = "Prompt-file frontmatter parsing, codegen, and call-site verification for grizzly-agent. Does not depend on grizzly-agent-core, except as a dev-dependency for the golden codegen test."
+
+[features]
+# The default face: split a Markdown file into frontmatter and body and parse
+# the frontmatter with yaml-rust2. No filesystem walking, no codegen — this is
+# what grizzly-agent-skills builds its own SKILL.md parsing on, and it is
+# unconditional (yaml-rust2 is a normal dependency below), so "default" here
+# names the feature list, not a gate on this behavior.
+default = []
+# A consumer's build-dependency edge: load and validate a prompt directory and
+# emit the generated Rust module.
+codegen = []
+# A consumer's dev-dependency edge: cross-check every prompt's declared call
+# sites against its source tree. Reuses codegen's `load` rather than
+# duplicating the parser, so it pulls codegen in rather than the runtime the
+# shipped binary uses.
+verify = ["codegen"]
+
+[dependencies]
+yaml-rust2 = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+# Only the golden codegen test needs core: it compiles the generated module
+# with the crate path set to `grizzly_agent_core` and exercises a generated
+# tool through `ToolSet`. Nothing else in this crate depends on core.
+grizzly-agent-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[lints]
+workspace = true
