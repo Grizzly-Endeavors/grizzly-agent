@@ -11,6 +11,7 @@
 //! example a build script generating code that references its types.
 
 mod accumulator;
+mod agent;
 mod completion;
 mod error;
 mod message;
@@ -23,8 +24,12 @@ mod test_support;
 mod tools;
 
 pub use crate::accumulator::CompletionAccumulator;
+pub use crate::agent::{
+    Agent, AgentBuilder, DynamicSection, Limits, RoundRecord, RunEnding, RunObserver, RunRecord,
+    RunTrace, SystemSection, ToolCallRecord,
+};
 pub use crate::completion::{Completion, CompletionEvent, StopReason, Usage};
-pub use crate::error::{ProviderFailure, ToolFailure, TurnFailure};
+pub use crate::error::{ProviderFailure, RunFailure, ToolFailure};
 pub use crate::message::{Content, Message, Role, ToolResult, ToolUse};
 pub use crate::model::{Model, ModelBuilder};
 pub use crate::provider::{CompletionStream, Provider};

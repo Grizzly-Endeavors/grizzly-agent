@@ -16,6 +16,10 @@ repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 [workspace.dependencies]
 grizzly-agent-core = { path = "crates/grizzly-agent-core", version = "0.1.0" }
 grizzly-agent-eval = { path = "crates/grizzly-agent-eval", version = "0.1.0" }
+# The anyhow-chain test on `RunFailure::Provider`: proves the error works with
+# `?` and `anyhow` the way a consumer's own code would use it, not just with
+# `thiserror`'s `source()`.
+anyhow = "1.0.104"
 tracing = "0.1.44"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"

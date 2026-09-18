@@ -46,39 +46,53 @@ impl CompletionRequest {
         }
     }
 
-    /// Check the request invariants [`crate::Model`] promises providers:
-    ///
-    /// - system messages form a contiguous, text-only run at the head;
-    /// - tool-use and reasoning blocks appear only on assistant messages;
-    /// - tool-result blocks appear only on user messages;
-    /// - every tool result answers a tool use from an earlier assistant
-    ///   message.
+    /// Check the request invariants [`crate::Model`] promises providers. See
+    /// [`validate_messages`] for the rules.
     ///
     /// # Errors
     /// Returns [`ProviderFailure::InvalidRequest`] naming the rule the first
     /// violation breaks.
     pub(crate) fn validate(&self) -> Result<(), ProviderFailure> {
-        let mut past_system_head = false;
-        let mut known_tool_use_ids = HashSet::new();
+        validate_messages(&self.messages)
+    }
+}
 
-        for message in &self.messages {
-            match message.role {
-                Role::System => {
-                    validate_system_message(message, past_system_head)?;
-                }
-                Role::User => {
-                    past_system_head = true;
-                    validate_user_message(message, &known_tool_use_ids)?;
-                }
-                Role::Assistant => {
-                    past_system_head = true;
-                    validate_assistant_message(message, &mut known_tool_use_ids)?;
-                }
+/// Check the request invariants [`crate::Model`] promises providers, against
+/// a message list directly:
+///
+/// - system messages form a contiguous, text-only run at the head;
+/// - tool-use and reasoning blocks appear only on assistant messages;
+/// - tool-result blocks appear only on user messages;
+/// - every tool result answers a tool use from an earlier assistant
+///   message.
+///
+/// Shared by [`CompletionRequest::validate`] and `Agent::run`'s upfront
+/// conversation check, so the two never drift apart.
+///
+/// # Errors
+/// Returns [`ProviderFailure::InvalidRequest`] naming the rule the first
+/// violation breaks.
+pub(crate) fn validate_messages(messages: &[Message]) -> Result<(), ProviderFailure> {
+    let mut past_system_head = false;
+    let mut known_tool_use_ids = HashSet::new();
+
+    for message in messages {
+        match message.role {
+            Role::System => {
+                validate_system_message(message, past_system_head)?;
+            }
+            Role::User => {
+                past_system_head = true;
+                validate_user_message(message, &known_tool_use_ids)?;
+            }
+            Role::Assistant => {
+                past_system_head = true;
+                validate_assistant_message(message, &mut known_tool_use_ids)?;
             }
         }
-
-        Ok(())
     }
+
+    Ok(())
 }
 
 fn invalid(rule: &str) -> ProviderFailure {
