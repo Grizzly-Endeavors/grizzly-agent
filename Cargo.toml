@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/grizzly-agent",
     "crates/grizzly-agent-core",
+    "crates/grizzly-agent-eval",
     "crates/grizzly-agent-prompts",
 ]
 
@@ -14,6 +15,7 @@ repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 
 [workspace.dependencies]
 grizzly-agent-core = { path = "crates/grizzly-agent-core", version = "0.1.0" }
+grizzly-agent-eval = { path = "crates/grizzly-agent-eval", version = "0.1.0" }
 tracing = "0.1.44"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -40,6 +42,15 @@ rand = "0.10.2"
 # generated struct fields and schema properties in source order.
 yaml-rust2 = "0.13.0"
 tempfile = "3.27.0"
+# Invocation ids for the eval report (UUID v7, so reports sort by time) and
+# tool-call ids elsewhere.
+uuid = { version = "1.26.1", features = ["v7", "serde"] }
+# The eval report's start time. Chosen over `chrono` for its modern,
+# footgun-free API (no ambiguous local-time constructors) and active
+# maintenance under the same author as `regex`; gantry already depends on it
+# for its own report, so the eval crate's later gantry integration shares one
+# time library instead of two.
+jiff = { version = "0.2.37", features = ["serde"] }
 
 # Lint configuration
 #

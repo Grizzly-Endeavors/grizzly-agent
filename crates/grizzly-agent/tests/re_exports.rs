@@ -247,6 +247,142 @@ async fn model_calls_are_reachable_through_the_facade() {
     );
 }
 
+#[cfg(feature = "eval")]
+#[test]
+fn eval_shared_core_is_reachable_through_the_facade() {
+    use grizzly_agent::{
+        CaseAggregate, CaseMeta, CaseReport, CheckResult, DEFAULT_MIN_PASS_RATE, DEFAULT_REPEATS,
+        InvocationDir, InvocationDirError, REPORT_FILE, REPORT_SCHEMA_VERSION, RepeatRecord,
+        Report, Verdict, VerdictCategory, render_summary,
+    };
+
+    let meta = CaseMeta {
+        min_pass_rate: Some(DEFAULT_MIN_PASS_RATE),
+        repeats: Some(DEFAULT_REPEATS),
+        ..CaseMeta::new("facade-case")
+    };
+    let verdict = Verdict::pass("answered correctly");
+    assert_eq!(
+        verdict.category,
+        VerdictCategory::Pass,
+        "the facade must re-export VerdictCategory alongside Verdict"
+    );
+
+    let aggregate = CaseAggregate::aggregate(&meta, std::slice::from_ref(&verdict));
+    let repeats = vec![RepeatRecord::new(verdict)];
+    let case_report = CaseReport { aggregate, repeats };
+    let report = Report::new(
+        uuid::Uuid::now_v7(),
+        jiff::Timestamp::now(),
+        serde_json::json!({}),
+        vec![case_report],
+    );
+    assert_eq!(
+        report.schema_version, REPORT_SCHEMA_VERSION,
+        "the facade must re-export REPORT_SCHEMA_VERSION matching Report::new's stamp"
+    );
+    assert!(
+        report.suite_result().all_met,
+        "the facade must re-export a Report whose suite_result reflects a passing case"
+    );
+    assert!(
+        !render_summary(&report).is_empty(),
+        "the facade must re-export a working render_summary"
+    );
+
+    let check = CheckResult::passed("lint", "exit 0");
+    assert!(check.passed, "the facade must re-export CheckResult");
+
+    let root = std::env::temp_dir().join(format!(
+        "grizzly-agent-facade-test-{}",
+        uuid::Uuid::now_v7()
+    ));
+    let dir =
+        InvocationDir::create(&root).expect("the facade's InvocationDir must create its directory");
+    assert_eq!(
+        dir.report_path()
+            .file_name()
+            .and_then(std::ffi::OsStr::to_str),
+        Some(REPORT_FILE),
+        "the facade must re-export REPORT_FILE matching InvocationDir::report_path"
+    );
+    let written: Result<_, InvocationDirError> = dir.write_report(&report);
+    assert!(
+        written.is_ok(),
+        "the facade's InvocationDir must write a report successfully"
+    );
+    std::fs::remove_dir_all(&root).ok();
+}
+
+#[cfg(all(feature = "eval", feature = "test-support"))]
+#[tokio::test]
+async fn response_eval_runner_is_reachable_through_the_facade() {
+    use grizzly_agent::{CaseMeta, CaseTimeout, ResponseEvalCase, ResponseEvalRunner, Verdict};
+
+    use grizzly_agent::{ScriptedProvider, ScriptedResponse};
+
+    struct AlwaysRight {
+        meta: CaseMeta,
+    }
+
+    impl ResponseEvalCase for AlwaysRight {
+        type Answer = String;
+
+        fn meta(&self) -> &CaseMeta {
+            &self.meta
+        }
+
+        fn build_request(&self) -> CompletionRequest {
+            CompletionRequest::new(vec![Message::user("hi")])
+        }
+
+        fn parse(&self, completion: &Completion) -> Result<String, String> {
+            Ok(completion
+                .content
+                .first()
+                .map_or_else(String::new, |block| match block {
+                    Content::Text(text) => text.clone(),
+                    Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => {
+                        String::new()
+                    }
+                }))
+        }
+
+        fn score(&self, _answer: &String) -> Verdict {
+            Verdict::pass("always right")
+        }
+
+        fn timeout(&self) -> CaseTimeout {
+            CaseTimeout::None
+        }
+    }
+
+    let provider = ScriptedProvider::new(vec![ScriptedResponse::Completion(Completion {
+        content: vec![Content::Text("scripted".to_owned())],
+        usage: Usage::default(),
+        stop_reason: StopReason::EndOfTurn,
+        raw_stop_reason: "stop".to_owned(),
+        model: "scripted-model".to_owned(),
+    })]);
+    let model = Model::builder(Arc::new(provider), "scripted-model").build();
+    let runner = ResponseEvalRunner::builder(model, 1).build();
+    let case = AlwaysRight {
+        meta: CaseMeta {
+            repeats: Some(1),
+            ..CaseMeta::new("facade-response-eval")
+        },
+    };
+
+    let reports = runner.run(std::slice::from_ref(&case)).await;
+    let report = reports
+        .first()
+        .expect("the facade's ResponseEvalRunner must produce one report per case");
+    assert_eq!(
+        report.aggregate.passes, 1,
+        "the facade's ResponseEvalRunner must run the case and record its pass"
+    );
+}
+
 #[cfg(feature = "test-support")]
 #[tokio::test]
 async fn scripted_provider_is_reachable_through_the_facade() {

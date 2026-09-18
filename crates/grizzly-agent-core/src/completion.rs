@@ -1,6 +1,8 @@
 //! What a model call returns: streamed events, usage, stop reasons, and the
 //! whole [`Completion`] they fold into.
 
+use serde::{Deserialize, Serialize};
+
 /// One step of a streamed completion, in provider-neutral terms.
 ///
 /// Closed rather than [`non_exhaustive`](https://doc.rust-lang.org/reference/attributes/type_system.html#the-non_exhaustive-attribute):
@@ -60,7 +62,7 @@ pub enum CompletionEvent {
 ///
 /// Every field is independently optional: a provider that never reports a
 /// count leaves it `None` — *unknown*, never a silent zero.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
     /// Tokens in the request the model read.
     pub input_tokens: Option<u64>,

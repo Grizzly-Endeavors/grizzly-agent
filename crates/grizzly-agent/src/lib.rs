@@ -98,3 +98,66 @@ pub use grizzly_agent_core::ScriptedResponse;
 /// without a semver bump.
 #[doc(hidden)]
 pub use grizzly_agent_core::serde_json;
+
+// ResponseEval and the shared eval core: case metadata, verdicts,
+// aggregation, and the report both ResponseEval and AgentEval feed.
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::CaseAggregate;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::CaseMeta;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::CaseReport;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::CaseTimeout;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::CheckResult;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::DEFAULT_MIN_PASS_RATE;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::DEFAULT_REPEATS;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::InvocationDir;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::InvocationDirError;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::REPORT_FILE;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::REPORT_SCHEMA_VERSION;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::RepeatRecord;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::Report;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::ResponseEvalCase;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::ResponseEvalRunner;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::ResponseEvalRunnerBuilder;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::SuiteResult;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::Verdict;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::VerdictCategory;
+#[cfg(feature = "eval")]
+#[doc(inline)]
+pub use grizzly_agent_eval::render_summary;
