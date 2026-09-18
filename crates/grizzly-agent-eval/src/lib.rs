@@ -16,6 +16,7 @@
 //! types, and on nothing that talks to a wire — no provider dependency, so a
 //! consumer testing a bespoke runner never pulls in HTTP.
 
+mod agent_eval;
 mod aggregate;
 mod case;
 mod check;
@@ -24,6 +25,7 @@ mod report;
 mod response_eval;
 mod verdict;
 
+pub use crate::agent_eval::{AgentEvalCase, AgentEvalRunner, AgentEvalRunnerBuilder};
 pub use crate::aggregate::CaseAggregate;
 pub use crate::case::{CaseMeta, DEFAULT_MIN_PASS_RATE, DEFAULT_REPEATS};
 pub use crate::check::CheckResult;
