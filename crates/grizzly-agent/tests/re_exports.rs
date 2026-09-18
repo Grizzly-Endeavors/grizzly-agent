@@ -341,6 +341,43 @@ fn eval_shared_core_is_reachable_through_the_facade() {
     std::fs::remove_dir_all(&root).ok();
 }
 
+/// [`Report::start`] and [`InvocationDir::report`] must let a consumer build
+/// a report through the facade with no `uuid` or `jiff` import of its own —
+/// this function deliberately never names either crate.
+#[cfg(feature = "eval")]
+#[test]
+fn eval_reports_are_buildable_without_a_direct_uuid_or_jiff_dependency() {
+    use grizzly_agent::{
+        CaseAggregate, CaseMeta, CaseReport, InvocationDir, RepeatRecord, Report, Verdict,
+    };
+
+    let meta = CaseMeta::new("no-direct-time-deps");
+    let verdict = Verdict::pass("ok");
+    let case_report = CaseReport {
+        aggregate: CaseAggregate::aggregate(&meta, std::slice::from_ref(&verdict)),
+        repeats: vec![RepeatRecord::new(verdict)],
+    };
+
+    let standalone = Report::start(serde_json::json!({}), vec![case_report.clone()]);
+    assert!(
+        standalone.suite_result().all_met,
+        "Report::start must produce a usable report with a fresh id and start time"
+    );
+
+    let root = std::env::temp_dir().join(format!(
+        "grizzly-agent-facade-report-start-test-{}",
+        standalone.invocation_id
+    ));
+    let dir = InvocationDir::create(&root).expect("must create the invocation directory");
+    let paired = dir.report(serde_json::json!({}), vec![case_report]);
+    assert_eq!(
+        paired.invocation_id,
+        dir.id(),
+        "InvocationDir::report must stamp the report with the directory's own id"
+    );
+    std::fs::remove_dir_all(&root).ok();
+}
+
 #[cfg(all(feature = "eval", feature = "test-support"))]
 #[tokio::test]
 async fn response_eval_runner_is_reachable_through_the_facade() {
@@ -413,12 +450,28 @@ async fn response_eval_runner_is_reachable_through_the_facade() {
 #[cfg(all(feature = "eval", feature = "test-support"))]
 #[tokio::test]
 async fn agent_eval_runner_is_reachable_through_the_facade() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
     use grizzly_agent::{AgentEvalCase, AgentEvalRunner, CaseMeta, CheckResult, Verdict};
 
     use grizzly_agent::{ScriptedProvider, ScriptedResponse};
 
+    /// An observer that only counts the events it sees, proving the runner
+    /// passes a case's own observer through to `Agent::run`.
+    struct CountingObserver {
+        events: Arc<AtomicUsize>,
+    }
+
+    #[async_trait::async_trait]
+    impl RunObserver for CountingObserver {
+        async fn on_event(&self, _event: &CompletionEvent) {
+            self.events.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
     struct AlwaysCompletes {
         meta: CaseMeta,
+        observed_events: Arc<AtomicUsize>,
     }
 
     #[async_trait::async_trait]
@@ -460,13 +513,21 @@ async fn agent_eval_runner_is_reachable_through_the_facade() {
                 Verdict::wrong("agent did not say done")
             }
         }
+
+        fn observer(&self) -> Option<Box<dyn RunObserver>> {
+            Some(Box::new(CountingObserver {
+                events: Arc::clone(&self.observed_events),
+            }))
+        }
     }
 
+    let observed_events = Arc::new(AtomicUsize::new(0));
     let case = AlwaysCompletes {
         meta: CaseMeta {
             repeats: Some(1),
             ..CaseMeta::new("facade-agent-eval")
         },
+        observed_events: Arc::clone(&observed_events),
     };
     let runner = AgentEvalRunner::builder().build();
 
@@ -477,6 +538,10 @@ async fn agent_eval_runner_is_reachable_through_the_facade() {
     assert_eq!(
         report.aggregate.passes, 1,
         "the facade's AgentEvalRunner must run the case and record its pass"
+    );
+    assert!(
+        observed_events.load(Ordering::SeqCst) > 0,
+        "the facade's AgentEvalRunner must pass AgentEvalCase::observer through to Agent::run"
     );
 }
 
@@ -805,4 +870,14 @@ async fn skill_activation_is_reachable_through_the_facade() {
         Some("ok"),
         "the facade must re-export a working SkillsSection wired into an Agent"
     );
+    assert_eq!(
+        state.active_names(),
+        vec!["frobnicate".to_owned()],
+        "the facade must re-export SkillState::active_names reflecting the tool call the agent made"
+    );
+    assert!(
+        state.is_active("frobnicate"),
+        "the facade must re-export a working SkillState::is_active"
+    );
+    assert!(!state.is_active("does-not-exist"));
 }
