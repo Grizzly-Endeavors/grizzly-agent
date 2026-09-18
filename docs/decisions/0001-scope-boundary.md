@@ -4,7 +4,7 @@
 
 ## Context
 
-This crate exists because the same primitives were re-solved across a dozen Rust projects that call LLMs. `docs/design/primitive-index.md` surveys all of them, and the duplication turned out to be literal rather than conceptual: `project-residuum/src/models/retry.rs` and `residuum-code/src/core/providers/retry.rs` are byte-for-byte identical, and `grizzly-gameservers/src/discord/chunking.rs` carries a doc comment saying it was "ported from the residuum Discord adapter." Four projects independently wrote the same provider trait.
+This crate exists because the same primitives were re-solved across a dozen Rust projects that call LLMs. `docs/archive/primitive-index.md` surveys all of them, and the duplication turned out to be literal rather than conceptual: `project-residuum/src/models/retry.rs` and `residuum-code/src/core/providers/retry.rs` are byte-for-byte identical, and `grizzly-gameservers/src/discord/chunking.rs` carries a doc comment saying it was "ported from the residuum Discord adapter." Four projects independently wrote the same provider trait.
 
 That is a strong case for a shared crate. It is also exactly how a shared crate becomes a framework. Every primitive in the survey was useful to the project that wrote it — usefulness cannot be the filter, because it admits everything. A toolkit that admits everything is one its own author has to fight, at which point the duplication it replaced was cheaper.
 

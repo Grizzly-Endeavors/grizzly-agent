@@ -1,6 +1,6 @@
 //! Conversation types shared by every provider.
 //!
-//! Four projects in `docs/design/primitive-index.md` independently wrote a flat
+//! Four projects in `docs/archive/primitive-index.md` independently wrote a flat
 //! `{ role, content: String, tool_calls, tool_call_id }` message — the OpenAI
 //! wire shape. That shape cannot represent a turn that interleaves text and tool
 //! use, which Anthropic's API produces natively, so it is a lossy target to

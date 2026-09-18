@@ -18,17 +18,18 @@ Anything encoding a product decision — which model, what a tool may do, how a 
 
 ## Workspace
 
-This repository is a Cargo workspace; every member is versioned together. Five packages exist today:
+This repository is a Cargo workspace; every member is versioned together. Six packages exist today:
 
 | Package | Responsibility |
 | --- | --- |
 | `grizzly-agent` | **Facade.** Re-exports the runtime crates behind features. The one line a consumer adds for runtime use. |
 | `grizzly-agent-core` | Conversation types, the error taxonomy, the tool model, model calls, and the turn loop and `Agent`. No HTTP. |
+| `grizzly-agent-providers` | Concrete provider clients — Anthropic and OpenAI-compatible — each behind its own feature. Depends on core. |
 | `grizzly-agent-prompts` | Prompt-file frontmatter parsing (default), codegen (`codegen` feature, a build-dependency), and call-site verification (`verify` feature, a dev-dependency). Does not depend on core. |
-| `grizzly-agent-eval` | `ResponseEval` and the shared case metadata, verdict, aggregation, and report core it and `AgentEval` feed. Depends on core, not on providers. |
+| `grizzly-agent-eval` | `ResponseEval` and `AgentEval` over the shared case metadata, verdict, aggregation, and report core they both feed. Depends on core, not on providers. |
 | `grizzly-agent-skills` | Agent Skills: format, index, and activation, per the open [Agent Skills specification](https://agentskills.io/specification). Depends on core and on prompts' default face. |
 
-The rest of the workspace — provider clients and AgentEval — lands incrementally on top of this foundation, per the design and phase plan in [`docs/design/workspace/`](docs/design/workspace/). Lints, toolchain, and deny policy live once at the workspace root; every member inherits the lint table unchanged via `lints.workspace = true`.
+Lints, toolchain, and deny policy live once at the workspace root; every member inherits the lint table unchanged via `lints.workspace = true`.
 
 **Consumption rule.** A consumer depending on more than one workspace member — for example the facade for runtime use and `grizzly-agent-prompts` on its build edge — must point every member at the same git revision. Cargo otherwise resolves two copies of `grizzly-agent-core`, and a generated `ToolSpec` from one copy will not type-check against the facade's re-export from the other.
 
