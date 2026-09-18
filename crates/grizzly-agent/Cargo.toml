@@ -19,9 +19,8 @@ skills = []
 # Enables ResponseEval and AgentEval (grizzly-agent-eval, not yet in the
 # workspace).
 eval = []
-# Forwards to grizzly-agent-core's scripted-provider test support once core
-# grows that feature.
-test-support = []
+# Forwards to grizzly-agent-core's scripted-provider test support.
+test-support = ["grizzly-agent-core/test-support"]
 
 [dependencies]
 grizzly-agent-core = { workspace = true }
@@ -29,8 +28,9 @@ grizzly-agent-core = { workspace = true }
 [dev-dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-util = { workspace = true }
+futures-util = { workspace = true }
 async-trait = { workspace = true }
 
 [lints]

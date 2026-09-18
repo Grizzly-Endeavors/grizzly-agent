@@ -6,10 +6,15 @@
     reason = "integration tests live at crate root by cargo convention"
 )]
 
+use std::sync::Arc;
+
+use futures_util::StreamExt;
 use grizzly_agent::{
-    Content, DuplicateToolName, Message, NoParams, ProviderFailure, Role, StopRequest, ToolContext,
-    ToolDefinition, ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse, TurnFailure,
-    TypedToolHandler,
+    Completion, CompletionAccumulator, CompletionEvent, CompletionRequest, CompletionStream,
+    Content, DuplicateToolName, Message, Model, ModelBuilder, NoParams, Provider, ProviderFailure,
+    ResponseFormat, RetryPolicy, Role, StopReason, StopRequest, ToolContext, ToolDefinition,
+    ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse, TurnFailure, TypedToolHandler,
+    Usage,
 };
 use std::borrow::Cow;
 
@@ -163,5 +168,107 @@ async fn the_tool_model_is_reachable_through_the_facade() {
     assert!(
         matches!(unknown, Err(ToolFailure::Unknown { name, .. }) if name == "missing"),
         "an unknown dispatch through the facade must still report ToolFailure::Unknown"
+    );
+}
+
+/// A minimal [`Provider`] so this test exercises the facade's model-call
+/// surface without needing the `test-support` feature.
+struct StubProvider;
+
+#[async_trait::async_trait]
+impl Provider for StubProvider {
+    async fn complete(
+        &self,
+        _request: CompletionRequest,
+    ) -> Result<CompletionStream, ProviderFailure> {
+        let events: Vec<Result<CompletionEvent, ProviderFailure>> = vec![
+            Ok(CompletionEvent::TextDelta("hello".to_owned())),
+            Ok(CompletionEvent::Usage(Usage {
+                input_tokens: Some(1),
+                output_tokens: Some(1),
+            })),
+            Ok(CompletionEvent::Finished {
+                stop_reason: StopReason::EndOfTurn,
+                raw_stop_reason: "stop".to_owned(),
+                model: "stub-model".to_owned(),
+            }),
+        ];
+        Ok(futures_util::stream::iter(events).boxed())
+    }
+}
+
+/// Takes and returns a [`ModelBuilder`] by name, so this test genuinely
+/// references the type rather than only ever inferring it.
+fn configure(builder: ModelBuilder) -> ModelBuilder {
+    builder
+        .retry_policy(RetryPolicy::default())
+        .default_max_tokens(256)
+        .default_response_format(ResponseFormat {
+            name: "answer".to_owned(),
+            schema: serde_json::json!({"type": "object"}),
+        })
+}
+
+#[tokio::test]
+async fn model_calls_are_reachable_through_the_facade() {
+    let model = configure(Model::builder(Arc::new(StubProvider), "stub-model")).build();
+    let request = CompletionRequest::new(vec![Message::user("hi")]);
+
+    let completion = model
+        .complete(request.clone())
+        .await
+        .expect("the stub provider must succeed");
+    let expected = Completion {
+        content: vec![Content::Text("hello".to_owned())],
+        usage: Usage {
+            input_tokens: Some(1),
+            output_tokens: Some(1),
+        },
+        stop_reason: StopReason::EndOfTurn,
+        raw_stop_reason: "stop".to_owned(),
+        model: "stub-model".to_owned(),
+    };
+    assert_eq!(
+        completion, expected,
+        "the facade must re-export Completion, StopReason and Usage together"
+    );
+
+    let mut stream = model.stream(request).await.expect("stream must open");
+    let mut accumulator = CompletionAccumulator::new();
+    while let Some(event) = stream.next().await {
+        accumulator.push(event.expect("the stub sequence must be well-formed"));
+    }
+    let replayed = accumulator
+        .finish()
+        .expect("a well-formed sequence must fold");
+    assert_eq!(
+        replayed, completion,
+        "the facade's CompletionAccumulator must reassemble what Model::complete returns"
+    );
+}
+
+#[cfg(feature = "test-support")]
+#[tokio::test]
+async fn scripted_provider_is_reachable_through_the_facade() {
+    use grizzly_agent::{ScriptedProvider, ScriptedResponse};
+
+    let provider = ScriptedProvider::new(vec![ScriptedResponse::Completion(Completion {
+        content: vec![Content::Text("scripted".to_owned())],
+        usage: Usage::default(),
+        stop_reason: StopReason::EndOfTurn,
+        raw_stop_reason: "stop".to_owned(),
+        model: "scripted-model".to_owned(),
+    })]);
+    let model = Model::builder(Arc::new(provider), "scripted-model").build();
+
+    let completion = model
+        .complete(CompletionRequest::new(vec![Message::user("hi")]))
+        .await
+        .expect("the scripted provider must succeed");
+
+    assert_eq!(
+        completion.content,
+        vec![Content::Text("scripted".to_owned())],
+        "the facade must re-export ScriptedProvider and ScriptedResponse"
     );
 }

@@ -21,7 +21,15 @@ thiserror = "2.0.20"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }
 tokio-util = "0.7.19"
+# The `Stream` trait in core's public API (`Provider`, `Model::stream`).
+futures-core = "0.3.34"
+# Stream combinators (`StreamExt`, `stream::once`, `stream::unfold`) used to
+# assemble and bound provider streams without hand-rolled `Poll` state machines.
+futures-util = "0.3.34"
+# Desugars the object-safe async `Provider` trait.
 async-trait = "0.1.92"
+# The default full-jitter source for `Model`'s retry backoff.
+rand = "0.10.2"
 
 # Lint configuration
 #
