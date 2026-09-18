@@ -6,6 +6,12 @@ publish.workspace = true
 repository.workspace = true
 description = "Conversation types, errors, the provider trait, the tool model and the turn loop for grizzly-agent. No HTTP."
 
+[features]
+default = []
+# A scripted `Provider` for testing anything built on `Model`. Also compiled
+# under `cfg(test)` so this crate's own tests exercise it without the feature.
+test-support = []
+
 [dependencies]
 tracing = { workspace = true }
 serde = { workspace = true }
@@ -13,10 +19,14 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 async-trait = { workspace = true }
 tokio-util = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+rand = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
 
 [dev-dependencies]
 tracing-subscriber = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 
 [lints]
 workspace = true

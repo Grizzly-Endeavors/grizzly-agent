@@ -10,12 +10,28 @@
 //! useful when a consumer wants core alone with no facade indirection — for
 //! example a build script generating code that references its types.
 
+mod accumulator;
+mod completion;
 mod error;
 mod message;
+mod model;
+mod provider;
+mod request;
+mod retry;
+#[cfg(any(test, feature = "test-support"))]
+mod test_support;
 mod tools;
 
+pub use crate::accumulator::CompletionAccumulator;
+pub use crate::completion::{Completion, CompletionEvent, StopReason, Usage};
 pub use crate::error::{ProviderFailure, ToolFailure, TurnFailure};
 pub use crate::message::{Content, Message, Role, ToolResult, ToolUse};
+pub use crate::model::{Model, ModelBuilder};
+pub use crate::provider::{CompletionStream, Provider};
+pub use crate::request::{CompletionRequest, ResponseFormat};
+pub use crate::retry::RetryPolicy;
+#[cfg(any(test, feature = "test-support"))]
+pub use crate::test_support::{ScriptedProvider, ScriptedResponse};
 pub use crate::tools::{
     DuplicateToolName, NoParams, StopRequest, ToolContext, ToolDefinition, ToolHandler, ToolSet,
     ToolSpec, TypedToolHandler,

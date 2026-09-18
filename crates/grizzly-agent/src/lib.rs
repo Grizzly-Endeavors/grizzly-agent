@@ -54,3 +54,39 @@ pub use grizzly_agent_core::ToolSet;
 pub use grizzly_agent_core::ToolSpec;
 #[doc(inline)]
 pub use grizzly_agent_core::TypedToolHandler;
+
+// Model calls and streaming. Unconditional: these are core's, with no
+// concrete provider required to use them (a consumer can implement `Provider`
+// itself, or use one from `grizzly-agent-providers` once that crate exists).
+#[doc(inline)]
+pub use grizzly_agent_core::Completion;
+#[doc(inline)]
+pub use grizzly_agent_core::CompletionAccumulator;
+#[doc(inline)]
+pub use grizzly_agent_core::CompletionEvent;
+#[doc(inline)]
+pub use grizzly_agent_core::CompletionRequest;
+#[doc(inline)]
+pub use grizzly_agent_core::CompletionStream;
+#[doc(inline)]
+pub use grizzly_agent_core::Model;
+#[doc(inline)]
+pub use grizzly_agent_core::ModelBuilder;
+#[doc(inline)]
+pub use grizzly_agent_core::Provider;
+#[doc(inline)]
+pub use grizzly_agent_core::ResponseFormat;
+#[doc(inline)]
+pub use grizzly_agent_core::RetryPolicy;
+#[doc(inline)]
+pub use grizzly_agent_core::StopReason;
+#[doc(inline)]
+pub use grizzly_agent_core::Usage;
+
+// The scripted provider. Forwarded from core's `test-support` feature.
+#[cfg(feature = "test-support")]
+#[doc(inline)]
+pub use grizzly_agent_core::ScriptedProvider;
+#[cfg(feature = "test-support")]
+#[doc(inline)]
+pub use grizzly_agent_core::ScriptedResponse;
