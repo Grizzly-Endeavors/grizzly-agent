@@ -1,48 +1,23 @@
-[package]
-name = "grizzly-agent"
+[workspace]
+resolver = "3"
+members = ["crates/grizzly-agent", "crates/grizzly-agent-core"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "Foundational primitives for building LLM agents in Rust."
 repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 
-[features]
-default = []
-# The two provider clients. Each pulls in reqwest; a consumer bringing its own
-# provider takes neither and this crate makes no HTTP calls at all.
-anthropic = ["dep:reqwest"]
-openai = ["dep:reqwest"]
-# Agent Skills loading. Separate because it is the only thing needing a YAML parser.
-skills = ["dep:yaml-rust2"]
-
-[dependencies]
-anyhow = "1.0.104"
+[workspace.dependencies]
+grizzly-agent-core = { path = "crates/grizzly-agent-core", version = "0.1.0" }
 tracing = "0.1.44"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 thiserror = "2.0.20"
-# The provider trait is object-safe (ADR-0005) so providers can be selected at
-# runtime and chained for failover. `async fn` in traits is not dyn-compatible,
-# so the boxing async-trait does is load-bearing, not convenience.
-async-trait = "0.1.92"
-# One params struct generates both the wire schema and the typed argument
-# parsing, so a tool's schema cannot drift from its handler (ADR-0006).
-schemars = "1.2.2"
-
-reqwest = { version = "0.13.4", optional = true, default-features = false, features = [
-    "json",
-    "rustls",
-    "http2",
-    "charset",
-] }
-# Chosen over the serde-integrated YAML crates because all of them are either
-# deprecated or pre-1.0 (ADR-0007). The six spec fields are mapped by hand.
-yaml-rust2 = { version = "0.11.0", optional = true }
-
 # A library emits tracing events; it does not choose the subscriber. Pulling
 # tracing-subscriber in as a normal dependency would force that choice on every
-# consumer, so it lives here for examples and tests only.
-[dev-dependencies]
+# consumer, so members list it under [dev-dependencies] only, for examples and
+# tests.
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }
 
@@ -54,22 +29,24 @@ tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }
 # change behavior. The strictness here is a substitute for the discipline
 # a human developer would bring naturally.
 #
-# Human contributors: the pre-commit hooks enforce everything, so you'll
-# know immediately if something needs fixing.
+# Every workspace member inherits this table unchanged via `lints.workspace =
+# true`. Human contributors: the pre-commit hooks enforce everything, so
+# you'll know immediately if something needs fixing.
 
-[lints.rust]
+[workspace.lints.rust]
 # deny rather than forbid so FFI boundaries can use a targeted
 # #[expect(unsafe_code, reason = "...")] — forbid cannot be overridden at the item level.
 unsafe_code = "deny"
 
-# This crate is consumed as a dependency, so its public surface is its product.
-# Undocumented public items are a defect here in a way they are not in a binary.
+# Every member is consumed as a dependency, so its public surface is its
+# product. Undocumented public items are a defect here in a way they are not
+# in a binary.
 missing_docs = "deny"
 # Mechanically enforces the private-first rule: `pub` on an item that no
 # external path can actually reach is a sign the visibility was cargo-culted.
 unreachable_pub = "deny"
 
-[lints.clippy]
+[workspace.lints.clippy]
 # Pedantic baseline. Kept at warn (not deny) because new clippy versions
 # add lints to this group — deny would break builds on toolchain upgrades
 # with no code changes. Individual lints below override where needed.

@@ -19,8 +19,14 @@ fail() {
 
 # Only the paths that were actually staged. Captured before formatting, because
 # `cargo fmt` rewrites the whole tree and we need to know what to put back.
-STAGED_RUST="$(git diff --cached --name-only --diff-filter=ACM -- '*.rs')"
-STAGED_TOML="$(git diff --cached --name-only --diff-filter=ACM -- '*.toml')"
+#
+# The filter includes R (renamed): a file moved as part of a larger change —
+# exactly what a workspace restructure does to every source file — is a
+# rename, not a modify, and git omits renames from ACM. Without R here, a
+# renamed-with-changes file's new lines are invisible to both the formatter
+# restage list and the content gates below.
+STAGED_RUST="$(git diff --cached --name-only --diff-filter=ACMR -- '*.rs')"
+STAGED_TOML="$(git diff --cached --name-only --diff-filter=ACMR -- '*.toml')"
 
 if [ -z "$STAGED_RUST" ] && [ -z "$STAGED_TOML" ]; then
     exit 0
@@ -44,11 +50,11 @@ cargo fmt --all || fail "ERROR: cargo fmt failed."
 restage "$STAGED_RUST"
 
 echo "Linting..."
-cargo clippy --all-targets --all-features -- -D warnings \
+cargo clippy --workspace --all-targets --all-features -- -D warnings \
     || fail "ERROR: clippy found issues. Fix them, or use #[expect(lint, reason = \"...\")] with a real reason."
 
 echo "Testing..."
-cargo test --quiet || fail "ERROR: tests failed."
+cargo test --workspace --quiet || fail "ERROR: tests failed."
 
 if command -v cargo-deny >/dev/null 2>&1; then
     echo "Auditing dependencies..."
@@ -60,7 +66,7 @@ fi
 
 # Content gates on the staged diff. These catch the two things clippy cannot:
 # a dbg! that survives a rebase, and a suppression style that never goes stale.
-DIFF="$(git diff --cached --diff-filter=ACM -- '*.rs')"
+DIFF="$(git diff --cached --diff-filter=ACMR -- '*.rs')"
 
 if grep -qE '^\+.*\bdbg!\(' <<<"$DIFF"; then
     echo -e "${RED}ERROR: Found dbg!() in staged changes.${NC}" >&2

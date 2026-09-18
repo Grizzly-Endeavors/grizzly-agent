@@ -15,7 +15,10 @@ fn text_content_joins_only_text_blocks() {
     let message = Message {
         role: Role::Assistant,
         content: vec![
-            Content::Reasoning("deliberating".to_owned()),
+            Content::Reasoning {
+                text: "deliberating".to_owned(),
+                signature: None,
+            },
             Content::Text("first".to_owned()),
             Content::ToolUse(tool_use("t1", "read")),
             Content::Text("second".to_owned()),
@@ -33,7 +36,10 @@ fn text_content_joins_only_text_blocks() {
 fn reasoning_is_never_treated_as_text() {
     let message = Message {
         role: Role::Assistant,
-        content: vec![Content::Reasoning("thinking out loud".to_owned())],
+        content: vec![Content::Reasoning {
+            text: "thinking out loud".to_owned(),
+            signature: Some("sig-1".to_owned()),
+        }],
     };
 
     assert_eq!(

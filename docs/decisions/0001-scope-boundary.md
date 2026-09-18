@@ -1,6 +1,6 @@
 # ADR-0001 — The admission test is two real consumers, not usefulness
 
-**Status:** Accepted (2026-08-09)
+**Status:** Superseded by [ADR-0008](0008-admission-bar-and-workspace-shape.md) (2026-09-18)
 
 ## Context
 

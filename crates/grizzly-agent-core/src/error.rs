@@ -55,6 +55,13 @@ pub enum ProviderFailure {
     /// Credentials are missing or malformed, detected before any request.
     #[error("{0}")]
     Configuration(String),
+
+    /// The request broke one of the request invariants `Model` enforces,
+    /// caught before it reached a provider.
+    ///
+    /// Never retryable: the same request breaks the same invariant every time.
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
 }
 
 impl ProviderFailure {
@@ -71,7 +78,7 @@ impl ProviderFailure {
             Self::Status { status, .. } => {
                 matches!(status, 408 | 429) || (500..600).contains(status)
             }
-            Self::Decode { .. } | Self::Configuration(_) => false,
+            Self::Decode { .. } | Self::Configuration(_) | Self::InvalidRequest(_) => false,
         }
     }
 
@@ -82,7 +89,10 @@ impl ProviderFailure {
     pub fn retry_after(&self) -> Option<std::time::Duration> {
         match self {
             Self::Status { retry_after, .. } => *retry_after,
-            Self::Transport { .. } | Self::Decode { .. } | Self::Configuration(_) => None,
+            Self::Transport { .. }
+            | Self::Decode { .. }
+            | Self::Configuration(_)
+            | Self::InvalidRequest(_) => None,
         }
     }
 }
@@ -138,35 +148,16 @@ impl ToolFailure {
 }
 
 /// Why a turn could not continue.
+///
+/// Running out of rounds and stalling are not turn failures — they are run
+/// endings the turn loop produces, describing what the agent did rather than
+/// a breakage. Only a provider failure means the system itself broke.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum TurnFailure {
     /// The provider failed in a way the turn cannot absorb.
     #[error("provider call failed")]
     Provider(#[from] ProviderFailure),
-
-    /// The turn hit its round budget without the model producing a final answer.
-    ///
-    /// Carries the budget so a caller can distinguish "needs a longer leash" from
-    /// "is looping," and escalate accordingly.
-    #[error("turn exhausted its budget of {rounds} rounds without a final answer")]
-    BudgetExhausted {
-        /// The budget that was spent.
-        rounds: usize,
-    },
-
-    /// The model repeated the same tool call with the same arguments enough times
-    /// to establish it is not making progress.
-    ///
-    /// `notes-reorg` catches this with a repeat counter; `job-finder`'s wall-clock
-    /// idle timer misses it entirely, because an unproductive loop returns fast.
-    #[error("turn stalled: `{tool}` called {count} times with identical arguments")]
-    Stalled {
-        /// The tool being repeated.
-        tool: String,
-        /// How many identical calls were seen.
-        count: usize,
-    },
 }
 
 #[cfg(test)]

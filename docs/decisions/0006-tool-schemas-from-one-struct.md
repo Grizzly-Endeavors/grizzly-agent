@@ -1,6 +1,6 @@
 # ADR-0006 — A tool's schema and its handler come from one struct
 
-**Status:** Accepted (2026-08-09)
+**Status:** Superseded by [ADR-0010](0010-tool-schemas-from-prompt-files.md) (2026-09-18)
 
 ## Context
 
