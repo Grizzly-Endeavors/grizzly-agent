@@ -101,7 +101,7 @@ async fn run_one<C: AgentEvalCase>(case: &C) -> RepeatRecord {
     };
 
     let outcome = agent
-        .run(conversation, CancellationToken::new(), None)
+        .run(conversation, CancellationToken::new(), case.observer())
         .await;
     let latency = start.elapsed();
 
