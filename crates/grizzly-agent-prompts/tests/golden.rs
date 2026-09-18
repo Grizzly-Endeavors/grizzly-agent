@@ -9,7 +9,9 @@
 
 use std::path::{Path, PathBuf};
 
-use grizzly_agent_core::{NoParams, ToolContext, ToolHandler, ToolSet, TypedToolHandler};
+use grizzly_agent_core::{
+    NoParams, ToolContext, ToolDefinition, ToolHandler, ToolSet, TypedToolHandler,
+};
 use grizzly_agent_prompts::PromptCodegen;
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
@@ -167,13 +169,14 @@ fn shared_params_struct_deserializes() {
 }
 
 #[test]
-fn tool_definition_binds_the_spec_and_params_type_generated_types_agree_on() {
+fn tool_definition_spec_is_reachable_generically() {
     fn spec_of<D: grizzly_agent_core::ToolDefinition>() -> grizzly_agent_core::ToolSpec {
         D::spec()
     }
 
-    // The trait impl's spec() must agree with the inherent one codegen also
-    // emits, since existing call sites use the inherent form.
+    // Generic code over the trait sees the same spec a direct `Tool::spec()`
+    // call does, since `ToolDefinition::spec()` is the only `spec()` codegen
+    // emits.
     assert_eq!(
         spec_of::<generated::EditFile>().name,
         generated::EditFile::spec().name

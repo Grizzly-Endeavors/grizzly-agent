@@ -21,3 +21,4 @@ Write one when a decision would make future-you ask "why on earth is it like thi
 | [0009](0009-streaming-is-the-provider-primitive.md) | Streaming is the provider primitive, and it is public | Accepted |
 | [0010](0010-tool-schemas-from-prompt-files.md) | A tool's schema and handler come from a prompt file, not a schemars struct | Accepted |
 | [0011](0011-skills-frontmatter-parsing-moves-to-prompts.md) | Skills' frontmatter parsing moves into `grizzly-agent-prompts` | Accepted |
+| [0012](0012-generated-tool-spec-through-tooldefinition-only.md) | Generated tools expose `spec()` only through `ToolDefinition` | Accepted |

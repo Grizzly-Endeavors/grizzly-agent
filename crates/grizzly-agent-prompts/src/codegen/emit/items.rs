@@ -75,9 +75,9 @@ fn emit_render_body(code: &mut Code, body: &[BodySegment]) {
     code.line("out");
 }
 
-/// A tool: a unit struct with `NAME` and `spec()`, a `ToolDefinition` impl
-/// binding it to its params type, and its own params struct when it defines
-/// an inline schema with at least one parameter.
+/// A tool: a unit struct with `NAME`, a `ToolDefinition` impl binding it to
+/// its params type and building its `ToolSpec`, and its own params struct
+/// when it defines an inline schema with at least one parameter.
 pub(super) fn emit_tool(
     code: &mut Code,
     crate_path: &str,
@@ -95,25 +95,6 @@ pub(super) fn emit_tool(
         "pub const NAME: &'static str = {};",
         str_lit(wire_name)
     ));
-    code.blank();
-    code.line("#[must_use]");
-    code.line("#[expect(");
-    code.line("    clippy::same_name_method,");
-    code.line(
-        "    reason = \"kept for existing call sites; the ToolDefinition impl below exists for \\",
-    );
-    code.line("              generic code over the trait and delegates back to this one\"");
-    code.line(")]");
-    code.open(&format!("pub fn spec() -> {crate_path}::ToolSpec {{"));
-    code.open(&format!("{crate_path}::ToolSpec {{"));
-    code.line("name: ::std::borrow::Cow::Borrowed(Self::NAME),");
-    code.line(&format!(
-        "description: ::std::borrow::Cow::Borrowed({}),",
-        str_lit(description)
-    ));
-    emit_schema(code, crate_path, resolved);
-    code.close("}");
-    code.close("}");
     code.close("}");
 
     code.blank();
@@ -122,7 +103,14 @@ pub(super) fn emit_tool(
     code.line(&format!("type Params = {params_ty};"));
     code.blank();
     code.open(&format!("fn spec() -> {crate_path}::ToolSpec {{"));
-    code.line("Self::spec()");
+    code.open(&format!("{crate_path}::ToolSpec {{"));
+    code.line("name: ::std::borrow::Cow::Borrowed(Self::NAME),");
+    code.line(&format!(
+        "description: ::std::borrow::Cow::Borrowed({}),",
+        str_lit(description)
+    ));
+    emit_schema(code, crate_path, resolved);
+    code.close("}");
     code.close("}");
     code.close("}");
 
