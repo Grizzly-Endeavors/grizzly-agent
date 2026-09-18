@@ -1,0 +1,27 @@
+[package]
+name = "grizzly-agent-eval"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+repository.workspace = true
+description = "ResponseEval and AgentEval over a shared scoring and report core for grizzly-agent."
+
+[dependencies]
+grizzly-agent-core = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+futures-util = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
+uuid = { workspace = true }
+jiff = { workspace = true }
+
+[dev-dependencies]
+grizzly-agent-core = { workspace = true, features = ["test-support"] }
+async-trait = { workspace = true }
+tracing-subscriber = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+
+[lints]
+workspace = true
