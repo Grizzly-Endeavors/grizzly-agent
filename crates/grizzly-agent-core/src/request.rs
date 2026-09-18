@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 use crate::error::ProviderFailure;
 use crate::message::{Content, Message, Role};
+use crate::tools::ToolSpec;
 
 /// A request for schema-constrained JSON output.
 #[derive(Debug, Clone, PartialEq)]
@@ -20,10 +21,12 @@ pub struct ResponseFormat {
 ///
 /// Unset `max_tokens` and `temperature` fall through to [`crate::Model`]'s
 /// configured defaults, then to the provider's own defaults.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CompletionRequest {
     /// The conversation so far, oldest first.
     pub messages: Vec<Message>,
+    /// The tools advertised to the model for this request.
+    pub tools: Vec<ToolSpec>,
     /// The maximum number of output tokens, if bounded.
     pub max_tokens: Option<u32>,
     /// Sampling temperature, if set.

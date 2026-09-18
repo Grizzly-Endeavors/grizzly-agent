@@ -1,5 +1,36 @@
+use std::borrow::Cow;
+
 use super::*;
 use crate::message::{ToolResult, ToolUse};
+use crate::tools::ToolSpec;
+
+#[test]
+fn new_defaults_to_no_advertised_tools() {
+    let request = CompletionRequest::new(vec![Message::user("hi")]);
+
+    assert!(
+        request.tools.is_empty(),
+        "a request built with `new` must advertise no tools until the caller sets some"
+    );
+}
+
+#[test]
+fn tools_round_trip_on_the_request() {
+    let mut request = CompletionRequest::new(vec![Message::user("hi")]);
+    request.tools.push(ToolSpec {
+        name: Cow::Borrowed("read_file"),
+        description: Cow::Borrowed("reads a file"),
+        parameters: serde_json::json!({"type": "object"}),
+    });
+
+    assert_eq!(
+        request.tools.len(),
+        1,
+        "a tool spec set on the request must be kept"
+    );
+    let spec = request.tools.first().expect("the tool spec just pushed");
+    assert_eq!(spec.name, "read_file");
+}
 
 fn assistant_tool_use(id: &str) -> Message {
     Message {

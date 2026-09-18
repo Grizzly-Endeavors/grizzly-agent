@@ -13,8 +13,8 @@ use grizzly_agent::{
     Completion, CompletionAccumulator, CompletionEvent, CompletionRequest, CompletionStream,
     Content, DuplicateToolName, Message, Model, ModelBuilder, NoParams, Provider, ProviderFailure,
     ResponseFormat, RetryPolicy, Role, StopReason, StopRequest, ToolContext, ToolDefinition,
-    ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse, TurnFailure, TypedToolHandler,
-    Usage,
+    ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse, TurnFailure,
+    TypedToolHandler, Usage,
 };
 use std::borrow::Cow;
 

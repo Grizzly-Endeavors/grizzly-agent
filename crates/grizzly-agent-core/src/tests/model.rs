@@ -256,3 +256,30 @@ async fn bound_by_deadline_yields_one_timeout_item_then_ends() {
         "the stream must end after the timeout item"
     );
 }
+
+#[tokio::test]
+async fn advertised_tools_reach_the_provider_unchanged() {
+    let provider =
+        ScriptedProvider::new(vec![ScriptedResponse::Completion(sample_completion("ok"))]);
+    let model = fast_model(provider.clone(), RetryPolicy::default());
+    let mut with_tools = request();
+    with_tools.tools.push(crate::tools::ToolSpec {
+        name: std::borrow::Cow::Borrowed("read_file"),
+        description: std::borrow::Cow::Borrowed("reads a file"),
+        parameters: serde_json::json!({"type": "object"}),
+    });
+
+    model.complete(with_tools).await.expect("must succeed");
+
+    let recorded = provider.requests();
+    let sent = recorded.first().expect("the request the provider received");
+    assert_eq!(
+        sent.tools.len(),
+        1,
+        "the advertised tool must reach the provider"
+    );
+    assert_eq!(
+        sent.tools.first().expect("the recorded tool spec").name,
+        "read_file"
+    );
+}
