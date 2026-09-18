@@ -442,9 +442,11 @@ dependencies = [
  "grizzly-agent-core",
  "grizzly-agent-eval",
  "grizzly-agent-providers",
+ "grizzly-agent-skills",
  "jiff",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tokio-util",
  "uuid",
@@ -514,6 +516,25 @@ dependencies = [
  "tokio",
  "tracing",
  "wiremock",
+]
+
+[[package]]
+name = "grizzly-agent-skills"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "grizzly-agent-core",
+ "grizzly-agent-prompts",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "yaml-rust2",
 ]
 
 [[package]]

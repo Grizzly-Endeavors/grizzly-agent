@@ -6,6 +6,7 @@ members = [
     "crates/grizzly-agent-eval",
     "crates/grizzly-agent-prompts",
     "crates/grizzly-agent-providers",
+    "crates/grizzly-agent-skills",
 ]
 
 [workspace.package]
@@ -17,7 +18,9 @@ repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 [workspace.dependencies]
 grizzly-agent-core = { path = "crates/grizzly-agent-core", version = "0.1.0" }
 grizzly-agent-eval = { path = "crates/grizzly-agent-eval", version = "0.1.0" }
+grizzly-agent-prompts = { path = "crates/grizzly-agent-prompts", version = "0.1.0" }
 grizzly-agent-providers = { path = "crates/grizzly-agent-providers", version = "0.1.0" }
+grizzly-agent-skills = { path = "crates/grizzly-agent-skills", version = "0.1.0" }
 # The anyhow-chain test on `RunFailure::Provider`: proves the error works with
 # `?` and `anyhow` the way a consumer's own code would use it, not just with
 # `thiserror`'s `source()`.

@@ -669,3 +669,140 @@ async fn the_turn_loop_and_agent_are_reachable_through_the_facade() {
         "the facade must re-export RunRecord and RunTrace with populated round records"
     );
 }
+
+#[cfg(feature = "skills")]
+#[test]
+fn the_skill_format_layer_is_reachable_through_the_facade() {
+    use grizzly_agent::{SkillError, parse_skill};
+
+    let content = "---\nname: do-thing\ndescription: does a thing.\n---\n\nBody.\n";
+    let skill = parse_skill(content, "do-thing").expect("the facade must re-export parse_skill");
+    assert_eq!(skill.name, "do-thing", "the facade must re-export Skill");
+
+    let error =
+        parse_skill(content, "other-directory").expect_err("a mismatched directory name must fail");
+    assert!(
+        matches!(error, SkillError::InvalidField { field: "name", .. }),
+        "the facade must re-export SkillError"
+    );
+}
+
+#[cfg(feature = "skills")]
+#[tokio::test]
+async fn the_skill_index_layer_is_reachable_through_the_facade() {
+    use grizzly_agent::{InvalidSkillReason, SkillDiagnostic, SkillIndex};
+
+    let root = tempfile::tempdir().expect("must create a tempdir");
+    let good = root.path().join("do-thing");
+    std::fs::create_dir_all(&good).expect("must create the skill directory");
+    std::fs::write(
+        good.join("SKILL.md"),
+        "---\nname: do-thing\ndescription: does a thing.\n---\n\nBody.\n",
+    )
+    .expect("must write the fixture skill");
+    let bad = root.path().join("broken");
+    std::fs::create_dir_all(&bad).expect("must create the invalid skill directory");
+    std::fs::write(
+        bad.join("SKILL.md"),
+        "---\nname: does-not-match\ndescription: broken.\n---\n\nBody.\n",
+    )
+    .expect("must write the invalid fixture skill");
+
+    let (index, diagnostics) = SkillIndex::scan(vec![root.path().to_path_buf()]).await;
+
+    assert_eq!(
+        index.len(),
+        1,
+        "the facade must re-export a working SkillIndex::scan"
+    );
+    assert!(index.get("do-thing").is_some());
+    assert_eq!(diagnostics.len(), 1);
+    assert!(
+        matches!(
+            diagnostics.first(),
+            Some(SkillDiagnostic::Invalid {
+                reason: InvalidSkillReason::Format(_),
+                ..
+            })
+        ),
+        "the facade must re-export SkillDiagnostic and InvalidSkillReason"
+    );
+}
+
+#[cfg(all(feature = "skills", feature = "test-support"))]
+#[tokio::test]
+async fn skill_activation_is_reachable_through_the_facade() {
+    use grizzly_agent::{
+        ScriptedProvider, ScriptedResponse, SkillIndex, SkillState, SkillsSection,
+        activate_skill_tool, deactivate_skill_tool,
+    };
+
+    let root = tempfile::tempdir().expect("must create a tempdir");
+    let skill_dir = root.path().join("frobnicate");
+    std::fs::create_dir_all(&skill_dir).expect("must create the skill directory");
+    std::fs::write(
+        skill_dir.join("SKILL.md"),
+        "---\nname: frobnicate\ndescription: frobnicates things.\n---\n\n\
+         Do the frobnicating carefully.\n",
+    )
+    .expect("must write the fixture skill");
+    let (index, diagnostics) = SkillIndex::scan(vec![root.path().to_path_buf()]).await;
+    assert!(diagnostics.is_empty(), "fixture skill must parse cleanly");
+
+    let state = Arc::new(SkillState::new(index));
+    let tools = ToolSet::new([
+        activate_skill_tool(Arc::clone(&state)),
+        deactivate_skill_tool(Arc::clone(&state)),
+    ])
+    .expect("the facade must re-export working skill tool constructors");
+
+    let activation = Completion {
+        content: vec![Content::ToolUse(ToolUse {
+            id: "call-1".to_owned(),
+            name: "activate_skill".to_owned(),
+            input: serde_json::json!({"name": "frobnicate"}),
+        })],
+        usage: Usage {
+            input_tokens: Some(10),
+            output_tokens: Some(2),
+        },
+        stop_reason: StopReason::ToolUse,
+        raw_stop_reason: "tool_use".to_owned(),
+        model: "scripted-model".to_owned(),
+    };
+    let reply = Completion {
+        content: vec![Content::Text("ok".to_owned())],
+        usage: Usage {
+            input_tokens: Some(5),
+            output_tokens: Some(1),
+        },
+        stop_reason: StopReason::EndOfTurn,
+        raw_stop_reason: "stop".to_owned(),
+        model: "scripted-model".to_owned(),
+    };
+    let provider = ScriptedProvider::new(vec![
+        ScriptedResponse::Completion(activation),
+        ScriptedResponse::Completion(reply),
+    ]);
+    let model = Model::builder(Arc::new(provider), "scripted-model").build();
+
+    let agent = Agent::builder(model, tools)
+        .section(SystemSection::dynamic(SkillsSection::new(Arc::clone(
+            &state,
+        ))))
+        .build();
+
+    let record = agent
+        .run(
+            vec![Message::user("please help")],
+            tokio_util::sync::CancellationToken::new(),
+            None,
+        )
+        .await
+        .expect("the facade's Agent must run a skill-activating conversation");
+    assert_eq!(
+        record.reply.as_deref(),
+        Some("ok"),
+        "the facade must re-export a working SkillsSection wired into an Agent"
+    );
+}

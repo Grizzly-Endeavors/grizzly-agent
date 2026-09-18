@@ -141,6 +141,38 @@ pub use grizzly_agent_core::ScriptedResponse;
 #[doc(hidden)]
 pub use grizzly_agent_core::serde_json;
 
+// Agent Skills: format, index, and activation.
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::InvalidSkillReason;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::Skill;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::SkillDiagnostic;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::SkillError;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::SkillIndex;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::SkillState;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::SkillsSection;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::activate_skill_tool;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::deactivate_skill_tool;
+#[cfg(feature = "skills")]
+#[doc(inline)]
+pub use grizzly_agent_skills::parse_skill;
+
 // ResponseEval, AgentEval, and the shared eval core: case metadata,
 // verdicts, aggregation, and the report both feed.
 #[cfg(feature = "eval")]

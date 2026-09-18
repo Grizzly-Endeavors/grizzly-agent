@@ -12,8 +12,8 @@ default = []
 anthropic = ["dep:grizzly-agent-providers", "grizzly-agent-providers/anthropic"]
 # Enables the OpenAI-compatible provider client.
 openai = ["dep:grizzly-agent-providers", "grizzly-agent-providers/openai"]
-# Enables Agent Skills loading (grizzly-agent-skills, not yet in the workspace).
-skills = []
+# Enables Agent Skills loading.
+skills = ["dep:grizzly-agent-skills"]
 # Enables ResponseEval and AgentEval.
 eval = ["dep:grizzly-agent-eval"]
 # Forwards to grizzly-agent-core's scripted-provider test support.
@@ -23,6 +23,7 @@ test-support = ["grizzly-agent-core/test-support"]
 grizzly-agent-core = { workspace = true }
 grizzly-agent-eval = { workspace = true, optional = true }
 grizzly-agent-providers = { workspace = true, optional = true }
+grizzly-agent-skills = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde = { workspace = true }
@@ -33,6 +34,7 @@ futures-util = { workspace = true }
 async-trait = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true
