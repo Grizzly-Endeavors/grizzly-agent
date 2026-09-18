@@ -96,7 +96,10 @@ impl Model {
         &self,
         request: &CompletionRequest,
     ) -> Result<Completion, ProviderFailure> {
-        let mut events = self.provider.complete(request.clone()).await?;
+        let mut events = self
+            .provider
+            .complete(&self.identifier, request.clone())
+            .await?;
         let mut accumulator = CompletionAccumulator::new();
         while let Some(event) = events.next().await {
             accumulator.push(event?);
@@ -162,7 +165,10 @@ impl Model {
         &self,
         request: &CompletionRequest,
     ) -> Result<(CompletionEvent, CompletionStream), ProviderFailure> {
-        let mut events = self.provider.complete(request.clone()).await?;
+        let mut events = self
+            .provider
+            .complete(&self.identifier, request.clone())
+            .await?;
         match events.next().await {
             Some(Ok(event)) => Ok((event, events)),
             Some(Err(failure)) => Err(failure),

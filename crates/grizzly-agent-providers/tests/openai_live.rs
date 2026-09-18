@@ -36,7 +36,7 @@ async fn a_simple_prompt_and_a_one_tool_round_trip_complete() {
     let model_id = required_env!("GRIZZLY_AGENT_TEST_OPENAI_MODEL");
     let api_key = std::env::var("GRIZZLY_AGENT_TEST_OPENAI_API_KEY").ok();
 
-    let mut builder = OpenAiCompatibleProvider::builder(&endpoint, &model_id);
+    let mut builder = OpenAiCompatibleProvider::builder(&endpoint);
     if let Some(key) = api_key {
         builder = builder.api_key(key);
     }

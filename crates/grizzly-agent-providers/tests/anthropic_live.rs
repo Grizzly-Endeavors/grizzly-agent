@@ -32,7 +32,7 @@ async fn a_simple_prompt_and_a_one_tool_round_trip_complete() {
     let api_key = required_env!("ANTHROPIC_API_KEY");
     let model_id = required_env!("GRIZZLY_AGENT_TEST_ANTHROPIC_MODEL");
 
-    let provider = AnthropicProvider::builder(api_key, &model_id)
+    let provider = AnthropicProvider::builder(api_key)
         .build()
         .expect("the provider always builds with a well-formed key and default base url");
     let model = Model::builder(Arc::new(provider), &model_id)

@@ -30,7 +30,10 @@ async fn a_completion_response_replays_as_a_well_formed_event_sequence() {
     let provider = ScriptedProvider::new(vec![ScriptedResponse::Completion(sample_completion())]);
 
     let mut stream = provider
-        .complete(CompletionRequest::new(vec![Message::user("hi")]))
+        .complete(
+            "test-model",
+            CompletionRequest::new(vec![Message::user("hi")]),
+        )
         .await
         .expect("the first scripted call must succeed");
 
@@ -56,7 +59,10 @@ async fn a_pre_stream_failure_is_returned_before_any_stream_opens() {
     )]);
 
     let error = provider
-        .complete(CompletionRequest::new(vec![Message::user("hi")]))
+        .complete(
+            "test-model",
+            CompletionRequest::new(vec![Message::user("hi")]),
+        )
         .await
         .err()
         .expect("a scripted pre-stream failure must surface immediately");
@@ -72,11 +78,17 @@ async fn requests_are_recorded_in_call_order() {
     ]);
 
     let _ = provider
-        .complete(CompletionRequest::new(vec![Message::user("first")]))
+        .complete(
+            "model-a",
+            CompletionRequest::new(vec![Message::user("first")]),
+        )
         .await
         .expect("first call");
     let _ = provider
-        .complete(CompletionRequest::new(vec![Message::user("second")]))
+        .complete(
+            "model-b",
+            CompletionRequest::new(vec![Message::user("second")]),
+        )
         .await
         .expect("second call");
 
@@ -100,6 +112,12 @@ async fn requests_are_recorded_in_call_order() {
             .text_content(),
         "second"
     );
+
+    assert_eq!(
+        provider.model_ids(),
+        vec!["model-a".to_owned(), "model-b".to_owned()],
+        "the model id passed to each call must be recorded index-aligned with requests"
+    );
 }
 
 #[tokio::test]
@@ -107,11 +125,17 @@ async fn exhausting_the_script_fails_non_retryably_and_names_the_call_count() {
     let provider = ScriptedProvider::new(vec![ScriptedResponse::Completion(sample_completion())]);
 
     let _ = provider
-        .complete(CompletionRequest::new(vec![Message::user("hi")]))
+        .complete(
+            "test-model",
+            CompletionRequest::new(vec![Message::user("hi")]),
+        )
         .await
         .expect("the scripted call must succeed");
     let error = provider
-        .complete(CompletionRequest::new(vec![Message::user("hi")]))
+        .complete(
+            "test-model",
+            CompletionRequest::new(vec![Message::user("hi")]),
+        )
         .await
         .err()
         .expect("a second call with an empty queue must fail");

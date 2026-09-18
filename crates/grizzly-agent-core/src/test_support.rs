@@ -36,6 +36,7 @@ struct ScriptedProviderState {
     queue: VecDeque<ScriptedResponse>,
     served: u32,
     requests: Vec<CompletionRequest>,
+    model_ids: Vec<String>,
 }
 
 /// A [`Provider`] that plays back a queued sequence of [`ScriptedResponse`]s
@@ -64,6 +65,14 @@ impl ScriptedProvider {
         lock_state(&self.state).requests.clone()
     }
 
+    /// The model id passed to each call, in call order — index-aligned with
+    /// [`Self::requests`], so a test can assert which model each request
+    /// named on the wire.
+    #[must_use]
+    pub fn model_ids(&self) -> Vec<String> {
+        lock_state(&self.state).model_ids.clone()
+    }
+
     /// How many calls this provider has served.
     #[must_use]
     pub fn calls_served(&self) -> u32 {
@@ -84,11 +93,13 @@ fn lock_state(state: &Mutex<ScriptedProviderState>) -> MutexGuard<'_, ScriptedPr
 impl Provider for ScriptedProvider {
     async fn complete(
         &self,
+        model: &str,
         request: CompletionRequest,
     ) -> Result<CompletionStream, ProviderFailure> {
         let response = {
             let mut state = lock_state(&self.state);
             state.requests.push(request);
+            state.model_ids.push(model.to_owned());
             let Some(response) = state.queue.pop_front() else {
                 let served = state.served;
                 return Err(ProviderFailure::Configuration(format!(
