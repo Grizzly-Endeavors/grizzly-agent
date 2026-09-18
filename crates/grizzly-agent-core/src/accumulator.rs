@@ -41,6 +41,9 @@ impl CompletionAccumulator {
         match event {
             CompletionEvent::TextDelta(text) => self.push_text(text),
             CompletionEvent::ReasoningDelta(text) => self.push_reasoning(text),
+            CompletionEvent::ReasoningSignatureDelta(signature) => {
+                self.push_reasoning_signature(&signature);
+            }
             CompletionEvent::ToolUseStart { id, name } => self.push_tool_use_start(id, name),
             CompletionEvent::ToolUseArgumentsDelta { id, fragment } => {
                 self.tool_arguments
@@ -79,6 +82,16 @@ impl CompletionAccumulator {
                 text,
                 signature: None,
             });
+        }
+    }
+
+    fn push_reasoning_signature(&mut self, signature: &str) {
+        if let Some(Content::Reasoning {
+            signature: existing,
+            ..
+        }) = self.blocks.last_mut()
+        {
+            existing.get_or_insert_default().push_str(signature);
         }
     }
 
