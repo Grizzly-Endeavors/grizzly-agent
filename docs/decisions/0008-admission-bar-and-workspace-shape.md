@@ -30,4 +30,4 @@ Cheaper in the short run — no new manifests, one lint block to write. Rejected
 - Every member manifest becomes more explicit — dependencies that used to live in one `Cargo.toml` behind a feature flag now live in the crate that actually needs them, which is the point of the split.
 - The workspace lint table cannot be relaxed per member; a lint that turns out wrong for one crate needs a scoped `#[expect(..., reason = "...")]` at the item level, same as before.
 - Rejection under the new admission bar still gets written down. An unrecorded "no" gets re-litigated; a recorded one is answerable in a link.
-- `docs/design/primitive-index.md`, the evidence base ADR-0001 was decided from, remains as historical record of the projects surveyed; it is not required to justify new admissions going forward.
+- `docs/archive/primitive-index.md`, the evidence base ADR-0001 was decided from, remains as historical record of the projects surveyed; it is not required to justify new admissions going forward.

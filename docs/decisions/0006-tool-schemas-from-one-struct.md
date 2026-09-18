@@ -4,7 +4,7 @@
 
 ## Context
 
-The most-repeated friction in `docs/design/primitive-index.md` is that a tool's declared schema and the code implementing it live in separate places and drift. Three projects hit it independently:
+The most-repeated friction in `docs/archive/primitive-index.md` is that a tool's declared schema and the code implementing it live in separate places and drift. Three projects hit it independently:
 
 - `grizzly-gameservers` built `prompt-lib`, which compiles prompt files into typed Rust and generates each tool's JSON Schema and params struct — then stops short of dispatch, leaving roughly thirty hand-written match arms.
 - `poe2/mcp` declares each tool's schema in `list_tools()` and its handler in a parallel thirty-branch `if/elif` about seven hundred lines away, with nothing checking they agree.
