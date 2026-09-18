@@ -1,11 +1,11 @@
 //! Compiles the checked-in golden generated module against
 //! `grizzly-agent-core` as a dev-dependency and exercises it, so a change to
 //! codegen's output is caught by a real compile, not just a text diff.
+#![cfg(feature = "codegen")]
 #![expect(
     clippy::tests_outside_test_module,
     reason = "integration tests live at crate root by cargo convention"
 )]
-#![cfg(feature = "codegen")]
 
 use std::path::{Path, PathBuf};
 

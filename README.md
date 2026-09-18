@@ -46,7 +46,8 @@ A bare dependency with no features enabled gets `grizzly-agent-core` alone — c
 cargo test --workspace --quiet                                          # tests (default features)
 cargo test --workspace --all-features --quiet                           # tests (all features — exercises prompts' codegen/verify)
 cargo fmt --all                                                         # format
-cargo clippy --workspace --all-targets --all-features -- -D warnings    # lint
+cargo clippy --workspace --all-targets -- -D warnings                   # lint (default features)
+cargo clippy --workspace --all-targets --all-features -- -D warnings    # lint (all features)
 cargo deny check                                                        # audit dependencies
 cargo doc --workspace --no-deps --all-features --open                   # read the public API
 ```
