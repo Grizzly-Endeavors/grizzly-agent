@@ -69,6 +69,13 @@ pub struct SuiteResult {
 
 /// One invocation's report: the schema version, when and how it ran, and
 /// every case it measured.
+///
+/// Assemble one with [`Report::start`] (a fresh invocation id and the
+/// current time, stamped for you) or, when a consumer is also creating an
+/// [`crate::InvocationDir`] for this invocation, [`crate::InvocationDir::report`]
+/// so the two share an id. Reach for [`Report::new`] only when the
+/// invocation id or start time must come from somewhere else — replaying a
+/// past invocation, for instance.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Report {
     /// [`REPORT_SCHEMA_VERSION`] at the time this report was written.
@@ -100,6 +107,18 @@ impl Report {
             settings,
             cases,
         }
+    }
+
+    /// Assemble a report stamped with a fresh UUID v7 invocation id and the
+    /// current time, so a consumer scoring cases needs neither `uuid` nor
+    /// `jiff` as its own dependency just to produce a report.
+    ///
+    /// When this invocation also has an [`crate::InvocationDir`], prefer
+    /// [`crate::InvocationDir::report`] instead, so the report's
+    /// `invocation_id` matches the directory it gets written to.
+    #[must_use]
+    pub fn start(settings: serde_json::Value, cases: Vec<CaseReport>) -> Self {
+        Self::new(Uuid::now_v7(), Timestamp::now(), settings, cases)
     }
 
     /// Whether every case in this report met its threshold.

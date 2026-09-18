@@ -7,9 +7,10 @@
 
 use std::path::{Path, PathBuf};
 
+use jiff::Timestamp;
 use uuid::Uuid;
 
-use crate::report::Report;
+use crate::report::{CaseReport, Report};
 
 /// The report file inside an invocation directory.
 pub const REPORT_FILE: &str = "report.json";
@@ -80,6 +81,18 @@ impl InvocationDir {
     #[must_use]
     pub fn report_path(&self) -> PathBuf {
         self.path.join(REPORT_FILE)
+    }
+
+    /// Assemble a [`Report`] for this invocation, stamped with this
+    /// directory's id and the current time.
+    ///
+    /// The recommended way to build a report for a consumer that pairs one
+    /// with an `InvocationDir`: the report's `invocation_id` then matches
+    /// the directory `write_report` saves it under, so the two never drift
+    /// apart.
+    #[must_use]
+    pub fn report(&self, settings: serde_json::Value, cases: Vec<CaseReport>) -> Report {
+        Report::new(self.id, Timestamp::now(), settings, cases)
     }
 
     /// Write `report` and hand back its path.
