@@ -8,7 +8,6 @@
 //! `Agent`, and gets progressive disclosure with no further code.
 
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
@@ -30,7 +29,10 @@ use crate::index::SkillIndex;
 /// active set.
 pub struct SkillState {
     index: SkillIndex,
-    active: Mutex<BTreeMap<String, String>>,
+    // Insertion-order pairs rather than a map: `active_names` promises
+    // activation order, and re-activating a skill already in the set keeps
+    // its original position rather than bumping it to the end.
+    active: Mutex<Vec<(String, String)>>,
 }
 
 impl SkillState {
@@ -40,7 +42,7 @@ impl SkillState {
     pub fn new(index: SkillIndex) -> Self {
         Self {
             index,
-            active: Mutex::new(BTreeMap::new()),
+            active: Mutex::new(Vec::new()),
         }
     }
 
@@ -50,7 +52,26 @@ impl SkillState {
         &self.index
     }
 
+    /// Names of every currently active skill, in the order they were
+    /// activated.
+    #[must_use]
+    pub fn active_names(&self) -> Vec<String> {
+        lock(&self.active)
+            .iter()
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
+    /// Whether `name` is currently active.
+    #[must_use]
+    pub fn is_active(&self, name: &str) -> bool {
+        lock(&self.active).iter().any(|(active, _)| active == name)
+    }
+
     /// Loads `name`'s body from disk and adds it to the active set.
+    ///
+    /// Re-activating a name already active reloads its body from disk but
+    /// keeps its original position in activation order.
     async fn activate(&self, name: &str) -> Result<(), ActivationError> {
         let Some(directory) = self.index.directory(name) else {
             return Err(ActivationError::UnknownSkill {
@@ -73,7 +94,13 @@ impl SkillState {
                 path: path.clone(),
             }
         })?;
-        lock(&self.active).insert(name.to_owned(), body.trim().to_owned());
+        let body = body.trim().to_owned();
+        let mut active = lock(&self.active);
+        if let Some(entry) = active.iter_mut().find(|(active, _)| active == name) {
+            entry.1 = body;
+        } else {
+            active.push((name.to_owned(), body));
+        }
         Ok(())
     }
 
@@ -81,10 +108,16 @@ impl SkillState {
     /// active — deactivating a skill that was not active is a harmless
     /// no-op, not a failure.
     fn deactivate(&self, name: &str) -> bool {
-        lock(&self.active).remove(name).is_some()
+        let mut active = lock(&self.active);
+        let Some(position) = active.iter().position(|(active, _)| active == name) else {
+            return false;
+        };
+        active.remove(position);
+        true
     }
 
-    /// The index's compact listing, followed by every active skill's body.
+    /// The index's compact listing, followed by every active skill's body,
+    /// in activation order.
     fn render(&self) -> String {
         let index_listing = self.index.render();
         let active = lock(&self.active);
@@ -104,7 +137,7 @@ impl SkillState {
     }
 }
 
-fn lock(active: &Mutex<BTreeMap<String, String>>) -> MutexGuard<'_, BTreeMap<String, String>> {
+fn lock(active: &Mutex<Vec<(String, String)>>) -> MutexGuard<'_, Vec<(String, String)>> {
     active.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
