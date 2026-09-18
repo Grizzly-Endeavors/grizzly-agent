@@ -5,8 +5,13 @@ set shell := ["bash", "-cu"]
 
 default: ci-local
 
+# Default features first (what a bare `grizzly-agent` dependency gets), then
+# all features — grizzly-agent-prompts' codegen/verify logic (its bulk) lives
+# entirely behind features, so the default-only run alone would never
+# exercise it.
 test:
     cargo test --workspace --quiet
+    cargo test --workspace --all-features --quiet
 
 # Build and open the API docs. Every member's public surface is its product,
 # so reading the rendered docs is part of reviewing a change to it.

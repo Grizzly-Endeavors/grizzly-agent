@@ -36,3 +36,11 @@ pub use crate::tools::{
     DuplicateToolName, NoParams, StopRequest, ToolContext, ToolDefinition, ToolHandler, ToolSet,
     ToolSpec, TypedToolHandler,
 };
+
+/// Re-exported so generated prompt code builds [`ToolSpec::parameters`]
+/// against this crate's `serde_json`, not whatever version a consumer happens
+/// to depend on separately. Not part of the public API; the leading
+/// underscore marks it as codegen support that may change without a semver
+/// bump.
+#[doc(hidden)]
+pub use serde_json;
