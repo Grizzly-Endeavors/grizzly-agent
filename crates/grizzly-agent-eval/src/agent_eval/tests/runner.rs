@@ -5,8 +5,9 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use grizzly_agent_core::{
-    Agent, Completion, Content, Message, Model, Provider, ProviderFailure, RunEnding, RunRecord,
-    ScriptedProvider, ScriptedResponse, StopReason, ToolHandler, ToolSet, Usage,
+    Agent, Completion, CompletionEvent, Content, Message, Model, Provider, ProviderFailure,
+    RunEnding, RunObserver, RunRecord, ScriptedProvider, ScriptedResponse, StopReason, ToolHandler,
+    ToolSet, Usage,
 };
 use tempfile::TempDir;
 
@@ -565,5 +566,100 @@ async fn repeats_are_bounded_by_a_raised_concurrency_limit() {
     assert!(
         max_in_flight.load(Ordering::SeqCst) >= 2,
         "with 6 repeats and a limit of 2, at least two repeats must overlap"
+    );
+}
+
+/// An observer that counts every event and round it sees.
+struct CountingObserver {
+    events: Arc<AtomicUsize>,
+    rounds: Arc<AtomicUsize>,
+}
+
+#[async_trait]
+impl RunObserver for CountingObserver {
+    async fn on_event(&self, _event: &CompletionEvent) {
+        self.events.fetch_add(1, Ordering::SeqCst);
+    }
+
+    async fn on_round(&self, _round: &grizzly_agent_core::RoundRecord) {
+        self.rounds.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+/// A repeat that hands the runner its own observer, so the runner must pass
+/// it through to `Agent::run` rather than always running with `None`.
+struct ObservedCase {
+    meta: CaseMeta,
+    events: Arc<AtomicUsize>,
+    rounds: Arc<AtomicUsize>,
+}
+
+#[async_trait]
+impl AgentEvalCase for ObservedCase {
+    type Environment = ();
+
+    fn meta(&self) -> &CaseMeta {
+        &self.meta
+    }
+
+    fn build_agent(&self) -> Agent {
+        let provider =
+            ScriptedProvider::new([ScriptedResponse::Completion(text_completion("done"))]);
+        Agent::builder(model_from(provider), empty_tools()).build()
+    }
+
+    async fn set_up(&self) -> Result<((), Vec<Message>), String> {
+        Ok(((), vec![Message::user("go")]))
+    }
+
+    async fn check(&self, (): &()) -> Result<Vec<CheckResult>, String> {
+        Ok(Vec::new())
+    }
+
+    fn score(&self, _record: &RunRecord, _checks: &[CheckResult]) -> Verdict {
+        Verdict::pass("ok")
+    }
+
+    fn observer(&self) -> Option<Box<dyn RunObserver>> {
+        Some(Box::new(CountingObserver {
+            events: Arc::clone(&self.events),
+            rounds: Arc::clone(&self.rounds),
+        }))
+    }
+}
+
+#[tokio::test]
+async fn a_cases_observer_sees_the_runs_events() {
+    let events = Arc::new(AtomicUsize::new(0));
+    let rounds = Arc::new(AtomicUsize::new(0));
+    let case = ObservedCase {
+        meta: CaseMeta {
+            repeats: Some(1),
+            ..CaseMeta::new("observed")
+        },
+        events: Arc::clone(&events),
+        rounds: Arc::clone(&rounds),
+    };
+    let runner = AgentEvalRunner::builder().build();
+
+    let reports = runner.run(std::slice::from_ref(&case)).await;
+    let repeat = reports
+        .first()
+        .and_then(|report| report.repeats.first())
+        .expect("one repeat must have run");
+
+    assert_eq!(
+        repeat.verdict.category,
+        VerdictCategory::Pass,
+        "the repeat must still score normally with an observer attached"
+    );
+    assert!(
+        events.load(Ordering::SeqCst) > 0,
+        "the case's observer must see the run's streamed events"
+    );
+    assert_eq!(
+        rounds.load(Ordering::SeqCst),
+        1,
+        "the case's observer must see the run's one finished round"
     );
 }

@@ -1,7 +1,7 @@
 //! An agent-harness eval case: build a fresh `Agent`, set up its
 //! environment, check it after the run, and score the result.
 
-use grizzly_agent_core::{Agent, Message, RunRecord};
+use grizzly_agent_core::{Agent, Message, RunObserver, RunRecord};
 
 use crate::case::CaseMeta;
 use crate::check::CheckResult;
@@ -58,4 +58,14 @@ pub trait AgentEvalCase: Send + Sync {
 
     /// Score a finished run against its check results.
     fn score(&self, record: &RunRecord, checks: &[CheckResult]) -> Verdict;
+
+    /// An observer to pass to [`Agent::run`] for one repeat.
+    ///
+    /// Called once per repeat, right before the run it observes, so a case
+    /// wanting a fresh observer per repeat — one recording into its own
+    /// buffer, say — can build one here rather than share a single instance
+    /// across every repeat. Defaults to `None`.
+    fn observer(&self) -> Option<Box<dyn RunObserver>> {
+        None
+    }
 }
