@@ -517,6 +517,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "grizzly-agent-skills"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "grizzly-agent-core",
+ "grizzly-agent-prompts",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "yaml-rust2",
+]
+
+[[package]]
 name = "h2"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
