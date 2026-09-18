@@ -2,32 +2,6 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
-## Scope — read this before adding anything
-
-This crate is a dependency consumed by other projects. Its value comes from what it *refuses* to contain. A toolkit that accretes every useful thing becomes a framework, and a framework you have to fight is worse than the duplication it replaced.
-
-**The admission test is not "is this useful?"** — almost anything is. It is: **would a second project have written this the same way?** If two projects would need the same thing but shape it differently, what belongs here is the trait, not the implementation.
-
-A primitive is admitted when all three hold:
-
-1. **Two real consumers.** Not one consumer and a hypothetical. Speculative generality is how the kitchen sink starts.
-2. **No product decision baked in.** Which model, which storage, what a tool may do, what a good answer looks like — all belong to the consumer. If generalizing something means adding a config knob for a choice, that choice probably isn't ours to make.
-3. **The consumer can't do it better locally.** Some things are genuinely cheaper to write twice than to abstract once. Say so and move on.
-
-**Rejection is the normal outcome.** When something fails the test, the answer is "that belongs in the consumer" — not "let's add a feature flag for it." Record the close calls in `docs/decisions/`; a written "no" is what stops the same idea being re-litigated every few months.
-
-### Already decided — do not reopen without the user
-
-These questions are closed. If you find yourself about to add one of them, read the ADR first; each was considered on evidence and rejected for a stated reason.
-
-- **MCP is out permanently** ([ADR-0002](docs/decisions/0002-no-mcp.md)). Consumers use `rmcp` directly. Do not add an MCP client, an MCP feature flag, or an `rmcp` re-export. The `ToolProvider` trait must stay good enough that an `rmcp` adapter is trivial to write *in the consumer* — if that adapter would be awkward, fix the trait, not this boundary.
-- **No streaming** ([ADR-0003](docs/decisions/0003-no-streaming.md)). The provider trait is request/response. Do not add `complete_stream`, and do not make `complete` return a stream that usually yields one item.
-- **No tokenizer, and no `chars / 4` helper** ([ADR-0004](docs/decisions/0004-provider-reported-token-counts.md)). Report the provider's counts. Every `Usage` field stays `Option` — an absent count must never be coerced to zero, because that turns "unknown cost" into "free."
-- **Memory and retrieval are deferred, not rejected.** They land after v1 behind a feature flag. Don't start them early, and don't let a smaller piece of them arrive by accident.
-- **Skills follow the published Agent Skills standard.** Match the spec; do not invent fields or diverge for convenience.
-
-`docs/design/primitive-index.md` is the survey these decisions were made from — a snapshot, not a live inventory. Cite it as evidence; don't maintain it.
-
 ## How to Operate
 
 ### Agent discipline
