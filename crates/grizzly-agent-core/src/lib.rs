@@ -12,6 +12,11 @@
 
 mod error;
 mod message;
+mod tools;
 
 pub use crate::error::{ProviderFailure, ToolFailure, TurnFailure};
 pub use crate::message::{Content, Message, Role, ToolResult, ToolUse};
+pub use crate::tools::{
+    DuplicateToolName, NoParams, StopRequest, ToolContext, ToolDefinition, ToolHandler, ToolSet,
+    ToolSpec, TypedToolHandler,
+};

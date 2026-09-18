@@ -33,3 +33,24 @@ pub use grizzly_agent_core::ProviderFailure;
 pub use grizzly_agent_core::ToolFailure;
 #[doc(inline)]
 pub use grizzly_agent_core::TurnFailure;
+
+// The tool model. Unconditional for the same reason: dispatching tools
+// through a `ToolSet` needs no provider, skill, or eval feature.
+#[doc(inline)]
+pub use grizzly_agent_core::DuplicateToolName;
+#[doc(inline)]
+pub use grizzly_agent_core::NoParams;
+#[doc(inline)]
+pub use grizzly_agent_core::StopRequest;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolContext;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolDefinition;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolHandler;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolSet;
+#[doc(inline)]
+pub use grizzly_agent_core::ToolSpec;
+#[doc(inline)]
+pub use grizzly_agent_core::TypedToolHandler;
