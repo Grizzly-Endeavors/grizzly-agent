@@ -272,3 +272,13 @@ async fn scripted_provider_is_reachable_through_the_facade() {
         "the facade must re-export ScriptedProvider and ScriptedResponse"
     );
 }
+
+#[test]
+fn the_hidden_serde_json_re_export_is_reachable_through_the_facade() {
+    let value = grizzly_agent::serde_json::json!({"ok": true});
+    assert_eq!(
+        value,
+        serde_json::json!({"ok": true}),
+        "the facade must re-export the same serde_json codegen depends on"
+    );
+}

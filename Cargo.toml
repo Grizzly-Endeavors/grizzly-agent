@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["crates/grizzly-agent", "crates/grizzly-agent-core"]
+members = [
+    "crates/grizzly-agent",
+    "crates/grizzly-agent-core",
+    "crates/grizzly-agent-prompts",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -30,6 +34,12 @@ futures-util = "0.3.34"
 async-trait = "0.1.92"
 # The default full-jitter source for `Model`'s retry backoff.
 rand = "0.10.2"
+# Prompt-file and skill-file frontmatter parsing. The serde-integrated YAML
+# crates are deprecated, unmaintained forks, or pre-1.0; this one is actively
+# maintained and its Hash preserves insertion order, which is what keeps
+# generated struct fields and schema properties in source order.
+yaml-rust2 = "0.13.0"
+tempfile = "3.27.0"
 
 # Lint configuration
 #
