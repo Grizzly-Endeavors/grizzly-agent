@@ -6,12 +6,12 @@ set shell := ["bash", "-cu"]
 default: ci-local
 
 test:
-    cargo test --quiet
+    cargo test --workspace --quiet
 
-# Build and open the API docs. This crate's public surface is its product, so
-# reading the rendered docs is part of reviewing a change to it.
+# Build and open the API docs. Every member's public surface is its product,
+# so reading the rendered docs is part of reviewing a change to it.
 doc:
-    cargo doc --no-deps --all-features --open
+    cargo doc --workspace --no-deps --all-features --open
 
 fmt:
     cargo fmt --all
@@ -20,13 +20,22 @@ fmt-check:
     cargo fmt --all -- --check
 
 lint:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 deny:
     cargo deny check
 
+# The provider feature matrix: no provider feature, each provider alone, and
+# both together. Exercises every combination a consumer of the facade might
+# depend on.
+provider-matrix:
+    cargo build -p grizzly-agent --no-default-features
+    cargo build -p grizzly-agent --no-default-features --features openai
+    cargo build -p grizzly-agent --no-default-features --features anthropic
+    cargo build -p grizzly-agent --no-default-features --features openai,anthropic
+
 # The full local gate. Run this before pushing.
-ci-local: fmt-check lint test deny
+ci-local: fmt-check lint test deny provider-matrix
 
 # Install the git hooks (once per clone, and once per new worktree is harmless).
 hooks:

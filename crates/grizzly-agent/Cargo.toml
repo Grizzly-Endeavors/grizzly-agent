@@ -1,0 +1,33 @@
+[package]
+name = "grizzly-agent"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+repository.workspace = true
+description = "Foundational primitives for building LLM agents in Rust."
+
+[features]
+default = []
+# Enables the Anthropic provider client (grizzly-agent-providers, not yet in
+# the workspace). Declared now so the feature name is stable for consumers.
+anthropic = []
+# Enables the OpenAI-compatible provider client (grizzly-agent-providers, not
+# yet in the workspace).
+openai = []
+# Enables Agent Skills loading (grizzly-agent-skills, not yet in the workspace).
+skills = []
+# Enables ResponseEval and AgentEval (grizzly-agent-eval, not yet in the
+# workspace).
+eval = []
+# Forwards to grizzly-agent-core's scripted-provider test support once core
+# grows that feature.
+test-support = []
+
+[dependencies]
+grizzly-agent-core = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

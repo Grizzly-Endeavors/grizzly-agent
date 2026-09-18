@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use super::{ProviderFailure, ToolFailure};
+use super::{ProviderFailure, ToolFailure, TurnFailure};
 
 fn status(code: u16) -> ProviderFailure {
     ProviderFailure::Status {
@@ -140,5 +140,30 @@ fn unknown_tool_names_the_tool_that_was_asked_for() {
     assert!(
         rendered.contains("delete_everything"),
         "the model needs to see which name it got wrong, got: {rendered}"
+    );
+}
+
+#[test]
+fn an_invalid_request_is_never_retryable_and_carries_no_retry_after() {
+    let failure = ProviderFailure::InvalidRequest("system message not at the head".to_owned());
+
+    assert!(
+        !failure.is_retryable(),
+        "the same request breaks the same invariant every time"
+    );
+    assert_eq!(
+        failure.retry_after(),
+        None,
+        "a request rejected before it reached a provider carries no server guidance"
+    );
+}
+
+#[test]
+fn a_turn_failure_wraps_the_provider_failure_that_caused_it() {
+    let failure = TurnFailure::from(status(503));
+
+    assert!(
+        matches!(failure, TurnFailure::Provider(inner) if inner.is_retryable()),
+        "the wrapped provider failure must survive the conversion unchanged"
     );
 }

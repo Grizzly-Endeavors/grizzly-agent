@@ -38,7 +38,16 @@ pub enum Content {
     /// this across two backends. Adapters map their spelling onto this variant so
     /// the ambiguity stops at the provider boundary. Reasoning is never folded
     /// into `Text`, because a caller rendering a reply must be able to leave it out.
-    Reasoning(String),
+    Reasoning {
+        /// The reasoning text.
+        text: String,
+        /// An opaque, provider-issued signature over the reasoning.
+        ///
+        /// Some providers require prior reasoning to be sent back verbatim and
+        /// signed before they will use it alongside a tool result; others use
+        /// no signature at all, in which case this is `None`.
+        signature: Option<String>,
+    },
     /// The model asking for a tool to run.
     ToolUse(ToolUse),
     /// The result of running one.
@@ -124,7 +133,7 @@ impl Message {
             .iter()
             .filter_map(|block| match block {
                 Content::ToolUse(use_) => Some(use_),
-                Content::Text(_) | Content::Reasoning(_) | Content::ToolResult(_) => None,
+                Content::Text(_) | Content::Reasoning { .. } | Content::ToolResult(_) => None,
             })
             .collect()
     }
@@ -139,7 +148,7 @@ impl Message {
             .iter()
             .filter_map(|block| match block {
                 Content::Text(text) => Some(text.as_str()),
-                Content::Reasoning(_) | Content::ToolUse(_) | Content::ToolResult(_) => None,
+                Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => None,
             })
             .collect::<Vec<_>>()
             .join("\n")
