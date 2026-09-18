@@ -5,6 +5,7 @@ members = [
     "crates/grizzly-agent-core",
     "crates/grizzly-agent-eval",
     "crates/grizzly-agent-prompts",
+    "crates/grizzly-agent-providers",
 ]
 
 [workspace.package]
@@ -16,6 +17,7 @@ repository = "https://github.com/Grizzly-Endeavors/grizzly-agent"
 [workspace.dependencies]
 grizzly-agent-core = { path = "crates/grizzly-agent-core", version = "0.1.0" }
 grizzly-agent-eval = { path = "crates/grizzly-agent-eval", version = "0.1.0" }
+grizzly-agent-providers = { path = "crates/grizzly-agent-providers", version = "0.1.0" }
 # The anyhow-chain test on `RunFailure::Provider`: proves the error works with
 # `?` and `anyhow` the way a consumer's own code would use it, not just with
 # `thiserror`'s `source()`.
@@ -55,6 +57,13 @@ uuid = { version = "1.26.1", features = ["v7", "serde"] }
 # for its own report, so the eval crate's later gantry integration shares one
 # time library instead of two.
 jiff = { version = "0.2.37", features = ["serde"] }
+# The HTTP client behind grizzly-agent-providers. rustls only (no native-tls);
+# "json" for serde bodies. Streamed chunks are read via `Response::chunk`, so
+# the `stream` feature (a `futures` adapter over the body) is not needed.
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json"] }
+# A local HTTP mock server for provider tests that exercise status handling,
+# `Retry-After`, and idle-timeout behavior without a real endpoint.
+wiremock = "0.6.5"
 
 # Lint configuration
 #

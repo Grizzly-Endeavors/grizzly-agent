@@ -53,6 +53,46 @@ fn a_delta_of_a_different_kind_starts_a_new_block_and_order_follows_the_stream()
 }
 
 #[test]
+fn reasoning_signature_deltas_attach_to_the_current_reasoning_block() {
+    let mut accumulator = CompletionAccumulator::new();
+    accumulator.push(CompletionEvent::ReasoningDelta("thinking".to_owned()));
+    accumulator.push(CompletionEvent::ReasoningSignatureDelta("sig-".to_owned()));
+    accumulator.push(CompletionEvent::ReasoningSignatureDelta(
+        "nature".to_owned(),
+    ));
+    accumulator.push(finished(StopReason::EndOfTurn));
+
+    let completion = accumulator.finish().expect("a finished stream must fold");
+
+    assert_eq!(
+        completion.content,
+        vec![Content::Reasoning {
+            text: "thinking".to_owned(),
+            signature: Some("sig-nature".to_owned()),
+        }],
+        "signature fragments concatenate onto the block a reasoning delta opened"
+    );
+}
+
+#[test]
+fn a_signature_delta_with_no_open_reasoning_block_is_dropped() {
+    let mut accumulator = CompletionAccumulator::new();
+    accumulator.push(CompletionEvent::TextDelta("reply".to_owned()));
+    accumulator.push(CompletionEvent::ReasoningSignatureDelta(
+        "orphan".to_owned(),
+    ));
+    accumulator.push(finished(StopReason::EndOfTurn));
+
+    let completion = accumulator.finish().expect("a finished stream must fold");
+
+    assert_eq!(
+        completion.content,
+        vec![Content::Text("reply".to_owned())],
+        "a signature delta with no reasoning block open has nothing to attach to"
+    );
+}
+
+#[test]
 fn interleaved_tool_call_argument_fragments_reassemble_by_id() {
     let mut accumulator = CompletionAccumulator::new();
     accumulator.push(CompletionEvent::ToolUseStart {

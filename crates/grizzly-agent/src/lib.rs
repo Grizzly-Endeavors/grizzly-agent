@@ -109,6 +109,22 @@ pub use grizzly_agent_core::SystemSection;
 #[doc(inline)]
 pub use grizzly_agent_core::ToolCallRecord;
 
+// The OpenAI-compatible provider client.
+#[cfg(feature = "openai")]
+#[doc(inline)]
+pub use grizzly_agent_providers::OpenAiCompatibleProvider;
+#[cfg(feature = "openai")]
+#[doc(inline)]
+pub use grizzly_agent_providers::OpenAiCompatibleProviderBuilder;
+
+// The Anthropic provider client.
+#[cfg(feature = "anthropic")]
+#[doc(inline)]
+pub use grizzly_agent_providers::AnthropicProvider;
+#[cfg(feature = "anthropic")]
+#[doc(inline)]
+pub use grizzly_agent_providers::AnthropicProviderBuilder;
+
 // The scripted provider. Forwarded from core's `test-support` feature.
 #[cfg(feature = "test-support")]
 #[doc(inline)]

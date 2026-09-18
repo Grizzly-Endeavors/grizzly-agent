@@ -20,6 +20,15 @@ pub enum CompletionEvent {
     /// Never folded into [`CompletionEvent::TextDelta`]: reasoning and the
     /// visible reply are distinct blocks throughout this crate.
     ReasoningDelta(String),
+    /// A fragment of the current reasoning block's provider-issued signature.
+    ///
+    /// Appended to the signature of the reasoning block most recently opened
+    /// by [`CompletionEvent::ReasoningDelta`], mirroring how a reasoning delta
+    /// extends that block's text. Providers that sign reasoning (Anthropic's
+    /// extended thinking) deliver the signature as its own wire event once the
+    /// reasoning text is complete; providers that do not use a signature never
+    /// emit this.
+    ReasoningSignatureDelta(String),
     /// The start of a tool call: its id and the tool's name.
     ///
     /// Opens a new tool-use block. Its arguments arrive afterward as
