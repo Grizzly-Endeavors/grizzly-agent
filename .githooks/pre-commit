@@ -50,8 +50,10 @@ cargo fmt --all || fail "ERROR: cargo fmt failed."
 restage "$STAGED_RUST"
 
 echo "Linting..."
+cargo clippy --workspace --all-targets -- -D warnings \
+    || fail "ERROR: clippy (default features) found issues. Fix them, or use #[expect(lint, reason = \"...\")] with a real reason."
 cargo clippy --workspace --all-targets --all-features -- -D warnings \
-    || fail "ERROR: clippy found issues. Fix them, or use #[expect(lint, reason = \"...\")] with a real reason."
+    || fail "ERROR: clippy (all features) found issues. Fix them, or use #[expect(lint, reason = \"...\")] with a real reason."
 
 echo "Testing..."
 cargo test --workspace --quiet || fail "ERROR: tests failed."

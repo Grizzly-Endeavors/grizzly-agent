@@ -13,14 +13,13 @@ use crate::transport::{DEFAULT_IDLE_TIMEOUT, build_client, status_failure, trans
 /// OpenAI itself, vLLM, Ollama, or another gateway that speaks the same wire
 /// shape.
 ///
-/// The endpoint's model id is fixed at construction, not per request: one
-/// provider instance calls one model, the same way
-/// [`grizzly_agent_core::Model`] wraps one provider. Build a provider per
-/// model your application calls.
+/// Carries no model id of its own: the base URL, key, and idle timeout are
+/// its only configuration, so one instance serves every model the endpoint
+/// offers — [`grizzly_agent_core::Model`] supplies the model id on every
+/// call.
 pub struct OpenAiCompatibleProvider {
     http: reqwest::Client,
     completions_url: String,
-    model: String,
     api_key: Option<String>,
 }
 
@@ -28,23 +27,18 @@ impl std::fmt::Debug for OpenAiCompatibleProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OpenAiCompatibleProvider")
             .field("completions_url", &self.completions_url)
-            .field("model", &self.model)
             .field("api_key", &self.api_key.as_ref().map(|_| "<redacted>"))
             .finish_non_exhaustive()
     }
 }
 
 impl OpenAiCompatibleProvider {
-    /// Start building a provider for `model` at `base_url` — a base such as
+    /// Start building a provider at `base_url` — a base such as
     /// `http://localhost:11434/v1`; `/chat/completions` is appended.
     #[must_use]
-    pub fn builder(
-        base_url: impl Into<String>,
-        model: impl Into<String>,
-    ) -> OpenAiCompatibleProviderBuilder {
+    pub fn builder(base_url: impl Into<String>) -> OpenAiCompatibleProviderBuilder {
         OpenAiCompatibleProviderBuilder {
             base_url: base_url.into(),
-            model: model.into(),
             api_key: None,
             idle_timeout: DEFAULT_IDLE_TIMEOUT,
         }
@@ -55,9 +49,10 @@ impl OpenAiCompatibleProvider {
 impl Provider for OpenAiCompatibleProvider {
     async fn complete(
         &self,
+        model: &str,
         request: CompletionRequest,
     ) -> Result<CompletionStream, ProviderFailure> {
-        let body = wire::build_request(&request, &self.model);
+        let body = wire::build_request(&request, model);
         let mut call = self.http.post(&self.completions_url);
         if let Some(key) = &self.api_key {
             call = call.bearer_auth(key);
@@ -79,7 +74,6 @@ impl Provider for OpenAiCompatibleProvider {
 /// [`OpenAiCompatibleProvider::builder`].
 pub struct OpenAiCompatibleProviderBuilder {
     base_url: String,
-    model: String,
     api_key: Option<String>,
     idle_timeout: Duration,
 }
@@ -117,7 +111,6 @@ impl OpenAiCompatibleProviderBuilder {
         Ok(OpenAiCompatibleProvider {
             http,
             completions_url,
-            model: self.model,
             api_key: self.api_key,
         })
     }

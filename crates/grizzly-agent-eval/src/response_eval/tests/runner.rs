@@ -220,12 +220,13 @@ struct TrackingProvider {
 impl Provider for TrackingProvider {
     async fn complete(
         &self,
+        model: &str,
         request: CompletionRequest,
     ) -> Result<CompletionStream, ProviderFailure> {
         let current = self.in_flight.fetch_add(1, Ordering::SeqCst) + 1;
         self.max_in_flight.fetch_max(current, Ordering::SeqCst);
         tokio::time::sleep(self.delay).await;
-        let result = self.inner.complete(request).await;
+        let result = self.inner.complete(model, request).await;
         self.in_flight.fetch_sub(1, Ordering::SeqCst);
         result
     }

@@ -25,13 +25,13 @@ const MESSAGES_PATH: &str = "/v1/messages";
 
 /// A [`Provider`] for Anthropic's Messages API.
 ///
-/// The model id is fixed at construction, the same way as
-/// [`crate::OpenAiCompatibleProvider`]: one provider instance calls one
-/// model.
+/// Carries no model id of its own, the same way as
+/// [`crate::OpenAiCompatibleProvider`]: [`grizzly_agent_core::Model`]
+/// supplies the model id on every call, so one provider instance serves as
+/// many models as the account can call.
 pub struct AnthropicProvider {
     http: reqwest::Client,
     messages_url: String,
-    model: String,
     default_max_tokens: u32,
 }
 
@@ -39,23 +39,18 @@ impl std::fmt::Debug for AnthropicProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AnthropicProvider")
             .field("messages_url", &self.messages_url)
-            .field("model", &self.model)
             .finish_non_exhaustive()
     }
 }
 
 impl AnthropicProvider {
-    /// Start building a provider for `model`, authenticating with `api_key`.
+    /// Start building a provider authenticating with `api_key`.
     #[must_use]
-    pub fn builder(
-        api_key: impl Into<String>,
-        model: impl Into<String>,
-    ) -> AnthropicProviderBuilder {
+    pub fn builder(api_key: impl Into<String>) -> AnthropicProviderBuilder {
         AnthropicProviderBuilder {
             base_url: "https://api.anthropic.com".to_owned(),
             api_key: api_key.into(),
             api_version: DEFAULT_API_VERSION.to_owned(),
-            model: model.into(),
             idle_timeout: DEFAULT_IDLE_TIMEOUT,
             default_max_tokens: DEFAULT_MAX_TOKENS,
         }
@@ -66,9 +61,10 @@ impl AnthropicProvider {
 impl Provider for AnthropicProvider {
     async fn complete(
         &self,
+        model: &str,
         request: CompletionRequest,
     ) -> Result<CompletionStream, ProviderFailure> {
-        let body = wire::build_request(&request, &self.model, self.default_max_tokens);
+        let body = wire::build_request(&request, model, self.default_max_tokens);
         let response = self
             .http
             .post(&self.messages_url)
@@ -90,7 +86,6 @@ pub struct AnthropicProviderBuilder {
     base_url: String,
     api_key: String,
     api_version: String,
-    model: String,
     idle_timeout: Duration,
     default_max_tokens: u32,
 }
@@ -147,7 +142,6 @@ impl AnthropicProviderBuilder {
         Ok(AnthropicProvider {
             http,
             messages_url,
-            model: self.model,
             default_max_tokens: self.default_max_tokens,
         })
     }

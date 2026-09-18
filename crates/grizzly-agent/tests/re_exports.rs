@@ -10,16 +10,24 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 use std::borrow::Cow;
-use std::sync::Mutex;
 
 use grizzly_agent::{
-    Agent, AgentBuilder, Completion, CompletionAccumulator, CompletionEvent, CompletionRequest,
-    CompletionStream, Content, DuplicateToolName, DynamicSection, Limits, Message, Model,
-    ModelBuilder, NoParams, Provider, ProviderFailure, ResponseFormat, RetryPolicy, Role,
-    RoundRecord, RunEnding, RunFailure, RunObserver, RunRecord, RunTrace, StopReason, StopRequest,
-    SystemSection, ToolCallRecord, ToolContext, ToolDefinition, ToolFailure, ToolHandler,
-    ToolResult, ToolSet, ToolSpec, ToolUse, TypedToolHandler, Usage,
+    Completion, CompletionAccumulator, CompletionEvent, CompletionRequest, CompletionStream,
+    Content, DuplicateToolName, Message, Model, ModelBuilder, NoParams, Provider, ProviderFailure,
+    ResponseFormat, RetryPolicy, Role, RunFailure, RunTrace, StopReason, StopRequest, ToolContext,
+    ToolDefinition, ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse,
+    TypedToolHandler, Usage,
 };
+// The turn loop and `Agent` are only exercised in the test-support-gated test
+// below, which is the one place a `ScriptedProvider` can drive a run without
+// a network; these imports and the fixtures under them go dark otherwise.
+#[cfg(feature = "test-support")]
+use grizzly_agent::{
+    Agent, AgentBuilder, DynamicSection, Limits, RoundRecord, RunEnding, RunObserver, RunRecord,
+    SystemSection, ToolCallRecord,
+};
+#[cfg(feature = "test-support")]
+use std::sync::Mutex;
 
 #[test]
 fn conversation_types_are_reachable_through_the_facade() {
@@ -197,6 +205,7 @@ struct StubProvider;
 impl Provider for StubProvider {
     async fn complete(
         &self,
+        _model: &str,
         _request: CompletionRequest,
     ) -> Result<CompletionStream, ProviderFailure> {
         let events: Vec<Result<CompletionEvent, ProviderFailure>> = vec![
@@ -502,7 +511,7 @@ async fn scripted_provider_is_reachable_through_the_facade() {
 fn the_openai_compatible_provider_is_reachable_through_the_facade() {
     use grizzly_agent::OpenAiCompatibleProvider;
 
-    let provider = OpenAiCompatibleProvider::builder("http://localhost:11434/v1", "test-model")
+    let provider = OpenAiCompatibleProvider::builder("http://localhost:11434/v1")
         .api_key("test-key")
         .idle_timeout(std::time::Duration::from_secs(30))
         .build();
@@ -517,7 +526,7 @@ fn the_openai_compatible_provider_is_reachable_through_the_facade() {
 fn the_anthropic_provider_is_reachable_through_the_facade() {
     use grizzly_agent::AnthropicProvider;
 
-    let provider = AnthropicProvider::builder("test-key", "claude-test")
+    let provider = AnthropicProvider::builder("test-key")
         .api_version("2023-06-01")
         .idle_timeout(std::time::Duration::from_secs(30))
         .default_max_tokens(2048)
@@ -538,20 +547,24 @@ fn the_hidden_serde_json_re_export_is_reachable_through_the_facade() {
     );
 }
 
+#[cfg(feature = "test-support")]
 struct StaticMood;
 
+#[cfg(feature = "test-support")]
 impl DynamicSection for StaticMood {
     fn render(&self) -> String {
         "current mood: chill".to_owned()
     }
 }
 
+#[cfg(feature = "test-support")]
 struct RecordingObserver {
     events: Mutex<Vec<CompletionEvent>>,
     rounds: Mutex<Vec<RoundRecord>>,
     tool_calls: Mutex<Vec<ToolCallRecord>>,
 }
 
+#[cfg(feature = "test-support")]
 #[async_trait::async_trait]
 impl RunObserver for RecordingObserver {
     async fn on_event(&self, event: &CompletionEvent) {
@@ -578,6 +591,7 @@ impl RunObserver for RecordingObserver {
 
 /// Takes and returns an [`AgentBuilder`] by name, so this test genuinely
 /// references the type rather than only ever inferring it.
+#[cfg(feature = "test-support")]
 fn configure_agent(builder: AgentBuilder) -> AgentBuilder {
     builder
         .section("static preamble")

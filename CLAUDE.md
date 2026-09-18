@@ -42,6 +42,7 @@ cargo test --workspace --quiet                           # always --quiet; never
 cargo test --workspace --all-features --quiet             # also with all features — some logic (e.g. prompts' codegen/verify) only compiles then
 cargo fmt --all                                          # format
 cargo fmt --all -- --check                               # verify formatting
+cargo clippy --workspace --all-targets -- -D warnings                # default features — catches gating bugs all-features hides
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo deny check                                         # advisories, licenses, sources
 ```
