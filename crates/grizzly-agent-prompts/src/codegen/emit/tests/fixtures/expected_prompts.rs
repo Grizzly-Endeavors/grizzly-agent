@@ -13,14 +13,12 @@ pub struct EditFile;
 
 impl EditFile {
     pub const NAME: &'static str = "edit_file";
+}
 
-    #[must_use]
-    #[expect(
-        clippy::same_name_method,
-        reason = "kept for existing call sites; the ToolDefinition impl below exists for \
-                  generic code over the trait and delegates back to this one"
-    )]
-    pub fn spec() -> grizzly_agent::ToolSpec {
+impl grizzly_agent::ToolDefinition for EditFile {
+    type Params = EditFileParams;
+
+    fn spec() -> grizzly_agent::ToolSpec {
         grizzly_agent::ToolSpec {
             name: ::std::borrow::Cow::Borrowed(Self::NAME),
             description: ::std::borrow::Cow::Borrowed("Edit a configuration file on the server, then verify and roll back on failure."),
@@ -45,14 +43,6 @@ impl EditFile {
                 "additionalProperties": false
             }),
         }
-    }
-}
-
-impl grizzly_agent::ToolDefinition for EditFile {
-    type Params = EditFileParams;
-
-    fn spec() -> grizzly_agent::ToolSpec {
-        Self::spec()
     }
 }
 
@@ -96,14 +86,12 @@ pub struct Ping;
 
 impl Ping {
     pub const NAME: &'static str = "ping";
+}
 
-    #[must_use]
-    #[expect(
-        clippy::same_name_method,
-        reason = "kept for existing call sites; the ToolDefinition impl below exists for \
-                  generic code over the trait and delegates back to this one"
-    )]
-    pub fn spec() -> grizzly_agent::ToolSpec {
+impl grizzly_agent::ToolDefinition for Ping {
+    type Params = grizzly_agent::NoParams;
+
+    fn spec() -> grizzly_agent::ToolSpec {
         grizzly_agent::ToolSpec {
             name: ::std::borrow::Cow::Borrowed(Self::NAME),
             description: ::std::borrow::Cow::Borrowed("Check whether the server is responding."),
@@ -116,26 +104,16 @@ impl Ping {
     }
 }
 
-impl grizzly_agent::ToolDefinition for Ping {
-    type Params = grizzly_agent::NoParams;
-
-    fn spec() -> grizzly_agent::ToolSpec {
-        Self::spec()
-    }
-}
-
 pub struct StartServer;
 
 impl StartServer {
     pub const NAME: &'static str = "start_server";
+}
 
-    #[must_use]
-    #[expect(
-        clippy::same_name_method,
-        reason = "kept for existing call sites; the ToolDefinition impl below exists for \
-                  generic code over the trait and delegates back to this one"
-    )]
-    pub fn spec() -> grizzly_agent::ToolSpec {
+impl grizzly_agent::ToolDefinition for StartServer {
+    type Params = NameParams;
+
+    fn spec() -> grizzly_agent::ToolSpec {
         grizzly_agent::ToolSpec {
             name: ::std::borrow::Cow::Borrowed(Self::NAME),
             description: ::std::borrow::Cow::Borrowed("Start a stopped server and report its address once it's ready."),
@@ -151,13 +129,5 @@ impl StartServer {
                 "additionalProperties": false
             }),
         }
-    }
-}
-
-impl grizzly_agent::ToolDefinition for StartServer {
-    type Params = NameParams;
-
-    fn spec() -> grizzly_agent::ToolSpec {
-        Self::spec()
     }
 }

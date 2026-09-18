@@ -82,7 +82,7 @@ fn generated_source_implements_tool_definition_for_every_tool() {
 fn generated_source_targets_a_non_default_crate_path() {
     let generated = super::generate(&fixtures_dir(), "grizzly_agent_core").unwrap();
     assert!(
-        generated.contains("pub fn spec() -> grizzly_agent_core::ToolSpec {"),
+        generated.contains("fn spec() -> grizzly_agent_core::ToolSpec {"),
         "spec() must target the configured crate path: {generated}"
     );
     assert!(
