@@ -55,6 +55,7 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings \
 
 echo "Testing..."
 cargo test --workspace --quiet || fail "ERROR: tests failed."
+cargo test --workspace --all-features --quiet || fail "ERROR: all-features tests failed."
 
 if command -v cargo-deny >/dev/null 2>&1; then
     echo "Auditing dependencies..."

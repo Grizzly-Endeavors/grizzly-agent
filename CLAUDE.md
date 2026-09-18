@@ -39,6 +39,7 @@ This repository is a Cargo workspace; every command below runs across the whole 
 ```sh
 cargo doc --workspace --no-deps --all-features           # read the public API you just changed
 cargo test --workspace --quiet                           # always --quiet; never plain cargo test
+cargo test --workspace --all-features --quiet             # also with all features — some logic (e.g. prompts' codegen/verify) only compiles then
 cargo fmt --all                                          # format
 cargo fmt --all -- --check                               # verify formatting
 cargo clippy --workspace --all-targets --all-features -- -D warnings
