@@ -34,18 +34,24 @@ A stale pin fails in ways that look like real bugs, so the debugging time is spe
 
 ## Build & Quality Gates
 
+This repository is a Cargo workspace; every command below runs across the whole workspace, not a single member.
+
 ```sh
-cargo doc --no-deps --all-features           # read the public API you just changed
-cargo test --quiet                           # always --quiet; never plain cargo test
-cargo fmt --all                              # format
-cargo fmt --all -- --check                   # verify formatting
-cargo clippy --all-targets --all-features -- -D warnings
-cargo deny check                             # advisories, licenses, sources
+cargo doc --workspace --no-deps --all-features           # read the public API you just changed
+cargo test --workspace --quiet                           # always --quiet; never plain cargo test
+cargo fmt --all                                          # format
+cargo fmt --all -- --check                               # verify formatting
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo deny check                                         # advisories, licenses, sources
 ```
 
-The `justfile` wraps these: `just test`, `just lint`, `just deny`, `just ci-local` (the full gate). Every recipe is also a plain cargo command — `just` is convenience, not required.
+The `justfile` wraps these: `just test`, `just lint`, `just deny`, `just ci-local` (the full gate, which also runs `just provider-matrix` — building the facade with no provider feature, each provider alone, and both). Every recipe is also a plain cargo command — `just` is convenience, not required.
 
-**Pre-commit hooks** run fmt (auto-applied and re-staged) → clippy → tests → `cargo deny` if installed, then reject staged `dbg!()` and `#[allow(`. Install once with `./.githooks/install.sh` or `just hooks`. **Bypassing with `--no-verify` is forbidden.** If a hook fails, fix the underlying issue.
+**Pre-commit hooks** run fmt (auto-applied and re-staged) → clippy → tests → `cargo deny` if installed, then reject staged `dbg!()` and `#[allow(` anywhere in the workspace. Install once with `./.githooks/install.sh` or `just hooks`. **Bypassing with `--no-verify` is forbidden.** If a hook fails, fix the underlying issue.
+
+## Workspace Layout
+
+Members live under `crates/`: `crates/grizzly-agent` (the facade, re-exporting the runtime crates behind features) and `crates/grizzly-agent-core` (conversation types and the error taxonomy; no HTTP), with more members landing as the crate grows per `docs/design/workspace/`. The lint table, toolchain pin, and deny policy live once at the workspace root; every member's `Cargo.toml` inherits it unchanged with `lints.workspace = true` and pulls shared dependency versions from `[workspace.dependencies]`. A member's own `[dependencies]` lists only what that crate actually uses — the facade takes on a new runtime dependency only when the crate providing it exists and one of the facade's features enables it.
 
 ## Naming
 
@@ -182,7 +188,7 @@ Test code may freely use `.unwrap()`, `.expect()`, `panic!`, and `dbg!` — the 
 - **`mod.rs`** primarily contains declarations and curated `pub use` re-exports. Module-level coordination logic is fine when it belongs there; gratuitous plumbing is not.
 - **Group related types in one file** (e.g. `Message`, `Role`, `ToolCall` together in `llm/types.rs`) rather than one-type-per-file.
 - **Shell vs core split**: IO-bound and framework-bound code (HTTP handlers, event loops, GUI callbacks) lives in a thin *shell* layer that calls into *pure* modules where all the logic is. The shell is usually not unit-tested; the pure modules are. If you find yourself adding logic to a shell module, move it into a pure module first and let the shell call the validated result.
-- **There is no shell here.** This crate is all core — the shell belongs to the consumer. What would be a shell layer elsewhere (HTTP transport, process spawning, filesystem access) appears here as a *trait* the consumer implements, which is also what makes the logic testable without a network.
+- **There is no shell in `grizzly-agent-core`.** It is all core — the shell belongs to the consumer, or to a provider crate that depends on core. What would be a shell layer elsewhere (HTTP transport, process spawning, filesystem access) appears in core as a *trait* the consumer implements, which is also what makes the logic testable without a network.
 - **Boundaries at the domain's joints.** Modules should divide where the problem divides, so a change to one concern touches one place. A boundary drawn because a file got long produces a `utils.rs` grab-bag; a boundary drawn at a real seam produces modules you can reason about alone.
 
 ## Test Organization (Rust)

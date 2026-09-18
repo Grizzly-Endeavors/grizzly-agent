@@ -1,6 +1,6 @@
 # ADR-0003 — No streaming until a consumer proves it needs it
 
-**Status:** Accepted (2026-08-09)
+**Status:** Superseded by [ADR-0009](0009-streaming-is-the-provider-primitive.md) (2026-09-18)
 
 ## Context
 

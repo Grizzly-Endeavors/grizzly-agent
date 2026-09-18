@@ -1,6 +1,6 @@
 # ADR-0007 — Skills follow the open Agent Skills spec, parsed without a serde YAML crate
 
-**Status:** Accepted (2026-08-09)
+**Status:** Accepted (2026-08-09); partially superseded by [ADR-0011](0011-skills-frontmatter-parsing-moves-to-prompts.md) (2026-09-18), which moves the split-and-parse step described here into `grizzly-agent-prompts`. The spec fields, their validation, the `yaml-rust2` choice, and the policy-scope consequences below are still current.
 
 ## Context
 
