@@ -441,6 +441,7 @@ dependencies = [
  "futures-util",
  "grizzly-agent-core",
  "grizzly-agent-eval",
+ "grizzly-agent-providers",
  "jiff",
  "serde",
  "serde_json",

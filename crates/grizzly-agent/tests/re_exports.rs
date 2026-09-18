@@ -427,6 +427,37 @@ async fn scripted_provider_is_reachable_through_the_facade() {
     );
 }
 
+#[cfg(feature = "openai")]
+#[test]
+fn the_openai_compatible_provider_is_reachable_through_the_facade() {
+    use grizzly_agent::OpenAiCompatibleProvider;
+
+    let provider = OpenAiCompatibleProvider::builder("http://localhost:11434/v1", "test-model")
+        .api_key("test-key")
+        .idle_timeout(std::time::Duration::from_secs(30))
+        .build();
+    assert!(
+        provider.is_ok(),
+        "the facade must re-export a working OpenAiCompatibleProvider builder"
+    );
+}
+
+#[cfg(feature = "anthropic")]
+#[test]
+fn the_anthropic_provider_is_reachable_through_the_facade() {
+    use grizzly_agent::AnthropicProvider;
+
+    let provider = AnthropicProvider::builder("test-key", "claude-test")
+        .api_version("2023-06-01")
+        .idle_timeout(std::time::Duration::from_secs(30))
+        .default_max_tokens(2048)
+        .build();
+    assert!(
+        provider.is_ok(),
+        "the facade must re-export a working AnthropicProvider builder"
+    );
+}
+
 #[test]
 fn the_hidden_serde_json_re_export_is_reachable_through_the_facade() {
     let value = grizzly_agent::serde_json::json!({"ok": true});

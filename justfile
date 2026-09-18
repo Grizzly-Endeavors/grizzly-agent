@@ -31,13 +31,17 @@ deny:
     cargo deny check
 
 # The provider feature matrix: no provider feature, each provider alone, and
-# both together. Exercises every combination a consumer of the facade might
-# depend on.
+# both together. Exercises every combination a consumer of the facade — and
+# of grizzly-agent-providers directly — might depend on.
 provider-matrix:
     cargo build -p grizzly-agent --no-default-features
     cargo build -p grizzly-agent --no-default-features --features openai
     cargo build -p grizzly-agent --no-default-features --features anthropic
     cargo build -p grizzly-agent --no-default-features --features openai,anthropic
+    cargo build -p grizzly-agent-providers --no-default-features
+    cargo build -p grizzly-agent-providers --no-default-features --features openai
+    cargo build -p grizzly-agent-providers --no-default-features --features anthropic
+    cargo build -p grizzly-agent-providers --no-default-features --features openai,anthropic
 
 # The full local gate. Run this before pushing.
 ci-local: fmt-check lint test deny provider-matrix
