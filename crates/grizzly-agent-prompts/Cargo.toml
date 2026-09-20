@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 repository.workspace = true
+license.workspace = true
 description = "Prompt-file frontmatter parsing, codegen, and call-site verification for grizzly-agent. Does not depend on grizzly-agent-core, except as a dev-dependency for the golden codegen test."
 
 [features]
