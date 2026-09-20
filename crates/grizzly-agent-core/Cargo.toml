@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 repository.workspace = true
+license.workspace = true
 description = "Conversation types, errors, the provider trait, the tool model and the turn loop for grizzly-agent. No HTTP."
 
 [features]
