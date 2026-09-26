@@ -133,6 +133,29 @@ fn a_user_message_with_only_tool_results_carries_no_trailing_user_message() {
 }
 
 #[test]
+fn redacted_reasoning_is_dropped_from_outgoing_assistant_history() {
+    let request = request_with(vec![Message {
+        role: Role::Assistant,
+        content: vec![
+            Content::RedactedReasoning {
+                data: "opaque-payload".to_owned(),
+            },
+            Content::Text("the answer is 4".to_owned()),
+        ],
+    }]);
+    let value = wire_json(&request, "gpt-test");
+
+    assert_eq!(
+        get(&value, "/messages/0/content"),
+        &serde_json::json!("the answer is 4")
+    );
+    assert!(
+        !value.to_string().contains("opaque-payload"),
+        "a redacted payload must never reach a wire that cannot echo it"
+    );
+}
+
+#[test]
 fn reasoning_blocks_are_dropped_from_outgoing_assistant_history() {
     let request = request_with(vec![Message {
         role: Role::Assistant,

@@ -8,6 +8,9 @@ use crate::message::{Message, ToolUse};
 fn sample_completion() -> Completion {
     Completion {
         content: vec![
+            Content::RedactedReasoning {
+                data: "opaque".to_owned(),
+            },
             Content::Text("here you go: ".to_owned()),
             Content::ToolUse(ToolUse {
                 id: "call-1".to_owned(),

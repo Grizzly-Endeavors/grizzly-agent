@@ -68,6 +68,9 @@ pub(crate) enum BlockWire {
         thinking: String,
         signature: String,
     },
+    RedactedThinking {
+        data: String,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -98,7 +101,8 @@ pub(crate) struct OutputFormatWire {
 /// top-level `system` field. Content blocks map natively in both message
 /// roles. Reasoning is sent back only when it carries a signature — unsigned
 /// reasoning is dropped, per the request invariants `Model` already enforces
-/// (reasoning appears only on assistant messages).
+/// (reasoning appears only on assistant messages). Redacted reasoning is sent
+/// back as a `redacted_thinking` block whose `data` is the original payload.
 pub(crate) fn build_request<'a>(
     request: &CompletionRequest,
     model: &'a str,
@@ -156,6 +160,9 @@ fn block_to_wire(block: &Content) -> Option<BlockWire> {
                 thinking: text.clone(),
                 signature,
             })
+        }
+        Content::RedactedReasoning { data } => {
+            Some(BlockWire::RedactedThinking { data: data.clone() })
         }
     }
 }
@@ -241,6 +248,11 @@ pub(crate) enum ContentBlockWire {
     ToolUse {
         id: String,
         name: String,
+    },
+    /// The ciphertext arrives on `content_block_start`. A delta-shaped model
+    /// would drop the only copy of the payload.
+    RedactedThinking {
+        data: String,
     },
     #[serde(other)]
     Other,
@@ -360,6 +372,10 @@ impl EventTranslator {
                 self.tool_call_ids.insert(index, id.clone());
                 Ok(vec![CompletionEvent::ToolUseStart { id, name }])
             }
+            StreamEventWire::ContentBlockStart {
+                content_block: ContentBlockWire::RedactedThinking { data },
+                ..
+            } => Ok(vec![CompletionEvent::RedactedReasoning { data }]),
             StreamEventWire::ContentBlockDelta { index, delta } => {
                 Ok(self.absorb_delta(index, delta))
             }

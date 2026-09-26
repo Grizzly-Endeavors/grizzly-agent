@@ -56,7 +56,10 @@ impl ResponseEvalCase for NumberCase {
             .iter()
             .find_map(|block| match block {
                 Content::Text(text) => Some(text.as_str()),
-                Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => None,
+                Content::Reasoning { .. }
+                | Content::RedactedReasoning { .. }
+                | Content::ToolUse(_)
+                | Content::ToolResult(_) => None,
             })
             .ok_or_else(|| "no text block in the reply".to_owned())?;
         text.trim()

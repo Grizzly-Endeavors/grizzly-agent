@@ -36,13 +36,17 @@ impl CompletionAccumulator {
     ///
     /// A text or reasoning delta extends the current block of that kind, or
     /// starts a new one if the current block is a different kind — so block
-    /// order in the reassembled message follows the stream.
+    /// order in the reassembled message follows the stream. A redacted
+    /// reasoning event is already a whole block and always starts a new one.
     pub fn push(&mut self, event: CompletionEvent) {
         match event {
             CompletionEvent::TextDelta(text) => self.push_text(text),
             CompletionEvent::ReasoningDelta(text) => self.push_reasoning(text),
             CompletionEvent::ReasoningSignatureDelta(signature) => {
                 self.push_reasoning_signature(&signature);
+            }
+            CompletionEvent::RedactedReasoning { data } => {
+                self.blocks.push(Content::RedactedReasoning { data });
             }
             CompletionEvent::ToolUseStart { id, name } => self.push_tool_use_start(id, name),
             CompletionEvent::ToolUseArgumentsDelta { id, fragment } => {
@@ -137,6 +141,9 @@ impl CompletionAccumulator {
                 Content::Text(text) => content.push(Content::Text(text)),
                 Content::Reasoning { text, signature } => {
                     content.push(Content::Reasoning { text, signature });
+                }
+                Content::RedactedReasoning { data } => {
+                    content.push(Content::RedactedReasoning { data });
                 }
                 Content::ToolResult(result) => content.push(Content::ToolResult(result)),
             }

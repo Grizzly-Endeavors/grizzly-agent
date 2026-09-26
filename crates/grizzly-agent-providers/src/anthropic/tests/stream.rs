@@ -173,6 +173,33 @@ fn a_tool_use_stream_reassembles_fragmented_arguments_by_block_index() {
 }
 
 #[test]
+fn a_redacted_thinking_block_is_emitted_whole_from_the_stream() {
+    let body = concat!(
+        "data: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":",
+        "{\"type\":\"redacted_thinking\",\"data\":\"opaque/payload+1\"}}\n",
+        "data: {\"type\":\"content_block_stop\",\"index\":0}\n",
+        "data: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":",
+        "{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"bash\",\"input\":{}}}\n",
+        "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\"},\"usage\":{\"output_tokens\":1}}\n",
+        "data: {\"type\":\"message_stop\"}\n",
+    )
+    .as_bytes();
+
+    let events = expect_events(read_whole(body));
+    assert_eq!(
+        events.first(),
+        Some(&CompletionEvent::RedactedReasoning {
+            data: "opaque/payload+1".to_owned(),
+        }),
+        "the encrypted payload arrives whole on content_block_start"
+    );
+    assert!(events.contains(&CompletionEvent::ToolUseStart {
+        id: "toolu_1".to_owned(),
+        name: "bash".to_owned(),
+    }));
+}
+
+#[test]
 fn a_reasoning_round_trip_carries_the_signature() {
     let body = concat!(
         "data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":",

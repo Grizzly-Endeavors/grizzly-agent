@@ -105,8 +105,9 @@ pub(crate) struct JsonSchemaWire {
 /// so [`crate::AnthropicProvider`]'s head-lifting rule does not apply here.
 /// A user message's tool results become consecutive `tool`-role messages,
 /// followed by one `user`-role message holding its remaining text, if any.
-/// Reasoning blocks are dropped from outgoing history: this wire has no slot
-/// for them, and the chat-completions API never asks for them back.
+/// Reasoning and redacted-reasoning blocks are dropped from outgoing
+/// history: this wire has no slot for them, and the chat-completions API
+/// never asks for them back.
 pub(crate) fn build_request<'a>(request: &CompletionRequest, model: &'a str) -> RequestWire<'a> {
     RequestWire {
         model,

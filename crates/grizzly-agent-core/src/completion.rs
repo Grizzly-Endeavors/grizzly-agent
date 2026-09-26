@@ -29,6 +29,17 @@ pub enum CompletionEvent {
     /// reasoning text is complete; providers that do not use a signature never
     /// emit this.
     ReasoningSignatureDelta(String),
+    /// One complete redacted-reasoning block.
+    ///
+    /// Unlike [`CompletionEvent::ReasoningDelta`], this is the whole block:
+    /// the provider delivers the encrypted payload when the block starts, not
+    /// as fragments. The accumulator stores it as its own
+    /// [`crate::Content::RedactedReasoning`] and does not merge it into a
+    /// neighboring reasoning block.
+    RedactedReasoning {
+        /// The provider-issued payload.
+        data: String,
+    },
     /// The start of a tool call: its id and the tool's name.
     ///
     /// Opens a new tool-use block. Its arguments arrive afterward as

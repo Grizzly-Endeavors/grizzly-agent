@@ -75,6 +75,43 @@ fn reasoning_signature_deltas_attach_to_the_current_reasoning_block() {
 }
 
 #[test]
+fn redacted_reasoning_is_its_own_block_and_does_not_merge() {
+    let mut accumulator = CompletionAccumulator::new();
+    accumulator.push(CompletionEvent::ReasoningDelta("visible".to_owned()));
+    accumulator.push(CompletionEvent::RedactedReasoning {
+        data: "opaque-a".to_owned(),
+    });
+    accumulator.push(CompletionEvent::ReasoningSignatureDelta(
+        "not-for-redacted".to_owned(),
+    ));
+    accumulator.push(CompletionEvent::RedactedReasoning {
+        data: "opaque-b".to_owned(),
+    });
+    accumulator.push(CompletionEvent::TextDelta("reply".to_owned()));
+    accumulator.push(finished(StopReason::EndOfTurn));
+
+    let completion = accumulator.finish().expect("a finished stream must fold");
+
+    assert_eq!(
+        completion.content,
+        vec![
+            Content::Reasoning {
+                text: "visible".to_owned(),
+                signature: None,
+            },
+            Content::RedactedReasoning {
+                data: "opaque-a".to_owned(),
+            },
+            Content::RedactedReasoning {
+                data: "opaque-b".to_owned(),
+            },
+            Content::Text("reply".to_owned()),
+        ],
+        "each redacted payload stays its own block, and a signature does not attach to it"
+    );
+}
+
+#[test]
 fn a_signature_delta_with_no_open_reasoning_block_is_dropped() {
     let mut accumulator = CompletionAccumulator::new();
     accumulator.push(CompletionEvent::TextDelta("reply".to_owned()));
