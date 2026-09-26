@@ -33,6 +33,26 @@ fn text_content_joins_only_text_blocks() {
 }
 
 #[test]
+fn redacted_reasoning_is_never_treated_as_text() {
+    let message = Message {
+        role: Role::Assistant,
+        content: vec![Content::RedactedReasoning {
+            data: "opaque-payload".to_owned(),
+        }],
+    };
+
+    assert_eq!(
+        message.text_content(),
+        "",
+        "a redacted payload is not text a caller can render"
+    );
+    assert!(
+        message.tool_uses().is_empty(),
+        "redacted reasoning is not a tool call"
+    );
+}
+
+#[test]
 fn reasoning_is_never_treated_as_text() {
     let message = Message {
         role: Role::Assistant,

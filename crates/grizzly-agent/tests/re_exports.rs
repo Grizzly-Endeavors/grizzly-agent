@@ -39,6 +39,9 @@ fn conversation_types_are_reachable_through_the_facade() {
                 text: "thinking".to_owned(),
                 signature: None,
             },
+            Content::RedactedReasoning {
+                data: "opaque".to_owned(),
+            },
             Content::ToolUse(ToolUse {
                 id: "call-1".to_owned(),
                 name: "read_file".to_owned(),
@@ -55,7 +58,7 @@ fn conversation_types_are_reachable_through_the_facade() {
     assert_eq!(message.role, Role::User, "the facade must re-export Role");
     assert_eq!(
         message.content.len(),
-        4,
+        5,
         "every Content variant must construct through the facade"
     );
 }
@@ -406,9 +409,10 @@ async fn response_eval_runner_is_reachable_through_the_facade() {
                 .first()
                 .map_or_else(String::new, |block| match block {
                     Content::Text(text) => text.clone(),
-                    Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => {
-                        String::new()
-                    }
+                    Content::Reasoning { .. }
+                    | Content::RedactedReasoning { .. }
+                    | Content::ToolUse(_)
+                    | Content::ToolResult(_) => String::new(),
                 }))
         }
 

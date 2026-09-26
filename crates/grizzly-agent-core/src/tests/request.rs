@@ -124,6 +124,40 @@ fn rejects_tool_use_on_a_user_message() {
 }
 
 #[test]
+fn accepts_redacted_reasoning_on_an_assistant_message() {
+    let request = CompletionRequest::new(vec![Message {
+        role: Role::Assistant,
+        content: vec![Content::RedactedReasoning {
+            data: "opaque".to_owned(),
+        }],
+    }]);
+
+    assert!(
+        request.validate().is_ok(),
+        "redacted reasoning on an assistant message is valid history"
+    );
+}
+
+#[test]
+fn rejects_redacted_reasoning_on_a_user_message() {
+    let request = CompletionRequest::new(vec![Message {
+        role: Role::User,
+        content: vec![Content::RedactedReasoning {
+            data: "opaque".to_owned(),
+        }],
+    }]);
+
+    let error = request
+        .validate()
+        .expect_err("redacted reasoning on a user message must be rejected");
+
+    assert!(
+        matches!(error, ProviderFailure::InvalidRequest(ref rule) if rule.contains("assistant messages")),
+        "the error must name the assistant-only rule, got {error}"
+    );
+}
+
+#[test]
 fn rejects_reasoning_on_a_user_message() {
     let request = CompletionRequest::new(vec![Message {
         role: Role::User,

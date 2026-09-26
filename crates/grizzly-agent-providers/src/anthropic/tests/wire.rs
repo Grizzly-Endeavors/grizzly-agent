@@ -160,6 +160,39 @@ fn signed_reasoning_round_trips_as_a_thinking_block() {
 }
 
 #[test]
+fn redacted_reasoning_is_replayed_unchanged() {
+    let data = "EmwKAhgBEgy3va3pzix/LafPsn4aDFIT2Xlxh0L5L8rLVyIwxtE3rAFBa8cr3qpP";
+    let request = request_with(vec![Message {
+        role: Role::Assistant,
+        content: vec![
+            Content::RedactedReasoning {
+                data: data.to_owned(),
+            },
+            Content::ToolUse(ToolUse {
+                id: "toolu_1".to_owned(),
+                name: "bash".to_owned(),
+                input: serde_json::json!({"command": "ls"}),
+            }),
+        ],
+    }]);
+    let value = wire_json(&request, "claude-test", 1024);
+
+    assert_eq!(
+        get(&value, "/messages/0/content/0"),
+        &serde_json::json!({
+            "type": "redacted_thinking",
+            "data": data,
+        }),
+        "the payload must be sent back as redacted_thinking, with no added fields"
+    );
+    assert_eq!(
+        get(&value, "/messages/0/content/1/type"),
+        &serde_json::json!("tool_use"),
+        "the redacted block stays ahead of the tool use it preceded"
+    );
+}
+
+#[test]
 fn unsigned_reasoning_is_dropped_from_outgoing_history() {
     let request = request_with(vec![Message {
         role: Role::Assistant,
@@ -313,6 +346,26 @@ fn input_json_deltas_are_addressed_by_block_index_not_a_per_fragment_id() {
         vec![CompletionEvent::ToolUseArgumentsDelta {
             id: "toolu_1".to_owned(),
             fragment: "{\"cmd\":\"ls\"}".to_owned(),
+        }]
+    );
+}
+
+#[test]
+fn a_redacted_thinking_block_start_emits_the_payload_unchanged() {
+    let data = "EmwKAhgBEgy3va3pzix/LafPsn4aDFIT2Xlxh0L5L8rLVyIwxtE3rAFBa8cr3qpP";
+    let mut translator = EventTranslator::new();
+    let events = translator
+        .absorb(event(serde_json::json!({
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {"type": "redacted_thinking", "data": data}
+        })))
+        .expect("no error");
+
+    assert_eq!(
+        events,
+        vec![CompletionEvent::RedactedReasoning {
+            data: data.to_owned(),
         }]
     );
 }

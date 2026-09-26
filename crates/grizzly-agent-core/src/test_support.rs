@@ -21,8 +21,9 @@ use crate::request::CompletionRequest;
 #[derive(Debug)]
 pub enum ScriptedResponse {
     /// A whole completion, emitted as a well-formed event sequence: a delta
-    /// per text or reasoning block, a tool-use start and one arguments delta
-    /// per tool call, usage if any field is known, then `Finished`.
+    /// per text or reasoning block, one event per redacted-reasoning block,
+    /// a tool-use start and one arguments delta per tool call, usage if any
+    /// field is known, then `Finished`.
     Completion(Completion),
     /// An explicit sequence of stream items, replayed verbatim — including
     /// any `Err`, to script a stream that breaks partway through.
@@ -143,6 +144,9 @@ fn events_for_block(block: Content) -> Vec<CompletionEvent> {
     match block {
         Content::Text(text) => vec![CompletionEvent::TextDelta(text)],
         Content::Reasoning { text, signature: _ } => vec![CompletionEvent::ReasoningDelta(text)],
+        Content::RedactedReasoning { data } => {
+            vec![CompletionEvent::RedactedReasoning { data }]
+        }
         Content::ToolUse(tool_use) => vec![
             CompletionEvent::ToolUseStart {
                 id: tool_use.id.clone(),

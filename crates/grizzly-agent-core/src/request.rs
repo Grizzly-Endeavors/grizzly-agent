@@ -61,7 +61,8 @@ impl CompletionRequest {
 /// a message list directly:
 ///
 /// - system messages form a contiguous, text-only run at the head;
-/// - tool-use and reasoning blocks appear only on assistant messages;
+/// - tool-use, reasoning, and redacted-reasoning blocks appear only on
+///   assistant messages;
 /// - tool-result blocks appear only on user messages;
 /// - every tool result answers a tool use from an earlier assistant
 ///   message.
@@ -125,7 +126,7 @@ fn validate_user_message(
     for block in &message.content {
         match block {
             Content::Text(_) => {}
-            Content::ToolUse(_) | Content::Reasoning { .. } => {
+            Content::ToolUse(_) | Content::Reasoning { .. } | Content::RedactedReasoning { .. } => {
                 return Err(invalid(
                     "tool-use and reasoning blocks may appear only on assistant messages",
                 ));
@@ -148,7 +149,7 @@ fn validate_assistant_message(
 ) -> Result<(), ProviderFailure> {
     for block in &message.content {
         match block {
-            Content::Text(_) | Content::Reasoning { .. } => {}
+            Content::Text(_) | Content::Reasoning { .. } | Content::RedactedReasoning { .. } => {}
             Content::ToolUse(tool_use) => {
                 known_tool_use_ids.insert(tool_use.id.clone());
             }

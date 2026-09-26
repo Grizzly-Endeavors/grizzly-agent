@@ -159,7 +159,10 @@ fn reply_text(completion: &Completion) -> String {
         .iter()
         .filter_map(|block| match block {
             Content::Text(text) => Some(text.as_str()),
-            Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => None,
+            Content::Reasoning { .. }
+            | Content::RedactedReasoning { .. }
+            | Content::ToolUse(_)
+            | Content::ToolResult(_) => None,
         })
         .collect::<Vec<_>>()
         .join("\n")

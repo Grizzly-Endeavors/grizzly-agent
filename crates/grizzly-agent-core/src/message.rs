@@ -48,6 +48,18 @@ pub enum Content {
         /// no signature at all, in which case this is `None`.
         signature: Option<String>,
     },
+    /// Opaque reasoning a provider requires echoed back unchanged.
+    ///
+    /// Anthropic replaces flagged extended-thinking text with an encrypted
+    /// `redacted_thinking` payload. The next request has to send that payload
+    /// back unmodified on the assistant message; omitting or altering it is
+    /// rejected. The payload is not readable text, so a caller rendering a
+    /// reply leaves this block out the same way it leaves [`Content::Reasoning`]
+    /// out.
+    RedactedReasoning {
+        /// The provider-issued payload.
+        data: String,
+    },
     /// The model asking for a tool to run.
     ToolUse(ToolUse),
     /// The result of running one.
@@ -133,22 +145,29 @@ impl Message {
             .iter()
             .filter_map(|block| match block {
                 Content::ToolUse(use_) => Some(use_),
-                Content::Text(_) | Content::Reasoning { .. } | Content::ToolResult(_) => None,
+                Content::Text(_)
+                | Content::Reasoning { .. }
+                | Content::RedactedReasoning { .. }
+                | Content::ToolResult(_) => None,
             })
             .collect()
     }
 
     /// The message's text blocks joined by newlines, excluding reasoning.
     ///
-    /// Returns an empty string for a message that is only tool use — which is a
-    /// real case, not a defect, so it is not an `Option`.
+    /// Redacted reasoning is excluded too: its payload is not text. Returns an
+    /// empty string for a message that is only tool use — which is a real
+    /// case, not a defect, so it is not an `Option`.
     #[must_use]
     pub fn text_content(&self) -> String {
         self.content
             .iter()
             .filter_map(|block| match block {
                 Content::Text(text) => Some(text.as_str()),
-                Content::Reasoning { .. } | Content::ToolUse(_) | Content::ToolResult(_) => None,
+                Content::Reasoning { .. }
+                | Content::RedactedReasoning { .. }
+                | Content::ToolUse(_)
+                | Content::ToolResult(_) => None,
             })
             .collect::<Vec<_>>()
             .join("\n")

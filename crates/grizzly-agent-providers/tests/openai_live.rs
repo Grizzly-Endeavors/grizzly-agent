@@ -78,7 +78,10 @@ async fn a_simple_prompt_and_a_one_tool_round_trip_complete() {
         .iter()
         .find_map(|block| match block {
             Content::ToolUse(tool_use) => Some(tool_use),
-            Content::Text(_) | Content::Reasoning { .. } | Content::ToolResult(_) => None,
+            Content::Text(_)
+            | Content::Reasoning { .. }
+            | Content::RedactedReasoning { .. }
+            | Content::ToolResult(_) => None,
         })
         .unwrap_or_else(|| panic!("expected a tool call, got {:?}", first.content));
 
