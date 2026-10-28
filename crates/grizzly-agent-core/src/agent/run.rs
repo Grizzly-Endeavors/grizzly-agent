@@ -224,9 +224,18 @@ impl Agent {
         let mut cancelled = false;
 
         for tool_use in &tool_uses {
-            if inputs.cancellation_token.is_cancelled() {
+            if cancelled || inputs.cancellation_token.is_cancelled() {
+                // Every tool use needs a result or providers reject the
+                // resumed conversation.
                 cancelled = true;
-                break;
+                results.push(
+                    ToolFailure::Execution {
+                        name: tool_use.name.clone(),
+                        message: "cancelled before it ran".to_owned(),
+                    }
+                    .into_result(tool_use.id.clone()),
+                );
+                continue;
             }
             let (result, record) = self.dispatch_one(tool_use, inputs).await;
             stall.record(&tool_use.name, &tool_use.input);
