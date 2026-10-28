@@ -462,6 +462,36 @@ async fn stalled_ending_after_repeating_the_same_call() {
     );
 }
 
+/// Asserts every `ToolUse` in the trace has exactly one `ToolResult` with its id.
+fn assert_every_tool_use_has_one_result(messages: &[Message]) {
+    let blocks = messages.iter().flat_map(|message| message.content.iter());
+    let use_ids: Vec<&str> = blocks
+        .clone()
+        .filter_map(|block| match block {
+            Content::ToolUse(tool_use) => Some(tool_use.id.as_str()),
+            _ => None,
+        })
+        .collect();
+    let result_ids: Vec<&str> = blocks
+        .filter_map(|block| match block {
+            Content::ToolResult(result) => Some(result.tool_use_id.as_str()),
+            _ => None,
+        })
+        .collect();
+    for id in &use_ids {
+        assert_eq!(
+            result_ids.iter().filter(|result_id| *result_id == id).count(),
+            1,
+            "tool use `{id}` must have exactly one result"
+        );
+    }
+    assert_eq!(
+        use_ids.len(),
+        result_ids.len(),
+        "no result may lack a tool use"
+    );
+}
+
 #[tokio::test]
 async fn cancelled_ending_when_the_token_is_already_set() {
     let (model, provider) = scripted(vec![ScriptedResponse::Completion(text_completion(
@@ -478,6 +508,7 @@ async fn cancelled_ending_when_the_token_is_already_set() {
 
     assert_eq!(record.ending, RunEnding::Cancelled);
     assert!(record.trace.rounds.is_empty());
+    assert_every_tool_use_has_one_result(&record.trace.messages);
     assert_eq!(
         provider.calls_served(),
         0,
@@ -536,6 +567,19 @@ async fn cancelled_ending_mid_tool_dispatch() {
         1,
         "cancellation must be checked before the second tool dispatch, so echo never runs"
     );
+    assert_every_tool_use_has_one_result(&record.trace.messages);
+    let skipped = record
+        .trace
+        .messages
+        .iter()
+        .flat_map(|message| message.content.iter())
+        .find_map(|block| match block {
+            Content::ToolResult(result) if result.tool_use_id == "call-echo" => Some(result),
+            _ => None,
+        })
+        .expect("the skipped tool use must get a result");
+    assert!(skipped.is_error);
+    assert!(skipped.content.contains("cancelled before it ran"));
 }
 
 #[tokio::test]
