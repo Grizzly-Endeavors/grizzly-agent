@@ -329,7 +329,6 @@ fn get_string_list(
     }
 }
 
-/// Trim exactly one trailing newline (`\r\n` or `\n`), per the format rule.
 fn normalize_body(body: &str) -> String {
     body.strip_suffix("\r\n")
         .or_else(|| body.strip_suffix('\n'))
@@ -363,7 +362,6 @@ pub(crate) fn tokenize_body(body: &str) -> Result<Vec<BodySegment>, TokenizeErro
     Ok(segments)
 }
 
-/// Read placeholder characters up to and including the closing `}}`.
 fn read_placeholder(
     chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
 ) -> Result<String, TokenizeError> {

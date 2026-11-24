@@ -60,7 +60,6 @@ fn accepts_valid_placeholder_names() {
 
 #[test]
 fn rejects_invalid_placeholder_names() {
-    // Uppercase, digit-leading, dash, keywords, and empty are all illegal.
     for name in ["Name", "1name", "game-id", "type", "self", "match", ""] {
         assert!(
             !is_valid_placeholder_name(name),

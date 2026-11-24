@@ -84,9 +84,6 @@ async fn an_idle_response_past_the_timeout_is_a_retryable_transport_failure() {
         .mount(&server)
         .await;
 
-    // `read_timeout` bounds every read on the connection, including the wait
-    // for the response itself — so a server that sits silent past it fails
-    // here exactly as it would mid-stream, on a real idle connection.
     let client = build_client(Duration::from_millis(20), HeaderMap::new()).expect("client builds");
     let outcome = client.get(format!("{}/idle", server.uri())).send().await;
 

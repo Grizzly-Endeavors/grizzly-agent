@@ -30,8 +30,6 @@ pub(super) fn emit_prompt(code: &mut Code, id: &str, body: &[BodySegment], varia
     };
     code.open(&head);
     code.line("#[must_use]");
-    // A no-variable prompt has nothing to consume, so its `render` is an
-    // associated function; a prompt with variables consumes `self`.
     let signature = if variables.is_empty() {
         "pub fn render() -> String {"
     } else {
@@ -43,8 +41,6 @@ pub(super) fn emit_prompt(code: &mut Code, id: &str, body: &[BodySegment], varia
     code.close("}");
 }
 
-/// The body of `render`. A body with no placeholders is a single owned literal;
-/// otherwise a `String` is built by pushing each literal and field in turn.
 fn emit_render_body(code: &mut Code, body: &[BodySegment]) {
     let has_placeholder = body
         .iter()
@@ -61,8 +57,6 @@ fn emit_render_body(code: &mut Code, body: &[BodySegment]) {
     for seg in body {
         match seg {
             BodySegment::Literal(text) => {
-                // A single-char segment pushes a `char`; a one-char `&str` would
-                // trip clippy's `single_char_add_str` in the generated code.
                 let mut chars = text.chars();
                 match (chars.next(), chars.next()) {
                     (Some(c), None) => code.line(&format!("out.push({});", char_lit(c))),
@@ -118,15 +112,10 @@ pub(super) fn emit_tool(
         && !inline.params.is_empty()
     {
         code.blank();
-        // Inline tools synthesize `<Id>Params`, but their enums still key off the
-        // file id (`<Id><Param>`) — matching `register_derived_names`.
         emit_params_struct(code, &format!("{id}Params"), id, inline);
     }
 }
 
-/// The `ToolDefinition::Params` type for a tool: its synthesized struct for a
-/// non-empty inline schema, the shared params file's own type for a
-/// `params_from` reference, or `NoParams` for an empty inline schema.
 fn params_type_name(
     id: &str,
     schema: &ToolSchemaRef,
@@ -160,14 +149,8 @@ fn resolve_schema<'a>(schema: &'a ToolSchemaRef, tree: &'a PromptTree) -> &'a To
     }
 }
 
-/// Fallback for the unreachable case where a `params_from` target is not a
-/// validated params file; validation rejects that before codegen runs.
 static EMPTY_SCHEMA: ToolSchema = ToolSchema { params: Vec::new() };
 
-/// The shared body of a params-bearing struct: fields with serde defaults on
-/// optionals, followed by one generated enum per `enum` parameter. `struct_name`
-/// is what the struct is called; `enum_owner` is the id enum names key off (the
-/// two differ for inline tools: `EditFileParams` struct, `EditFileMode` enum).
 fn emit_params_struct(code: &mut Code, struct_name: &str, enum_owner: &str, schema: &ToolSchema) {
     code.line("#[derive(serde::Deserialize)]");
     code.open(&format!("pub struct {struct_name} {{"));
@@ -190,8 +173,6 @@ fn emit_params_struct(code: &mut Code, struct_name: &str, enum_owner: &str, sche
     }
 }
 
-/// One generated enum: a variant per value, `PascalCase`d and serde-renamed back
-/// to the exact wire string.
 fn emit_enum(code: &mut Code, owner_id: &str, param_name: &str, values: &[String]) {
     code.line("#[derive(serde::Deserialize)]");
     code.open(&format!(

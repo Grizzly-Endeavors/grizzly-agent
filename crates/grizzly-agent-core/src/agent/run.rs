@@ -225,8 +225,6 @@ impl Agent {
 
         for tool_use in &tool_uses {
             if cancelled || inputs.cancellation_token.is_cancelled() {
-                // Every tool use needs a result or providers reject the
-                // resumed conversation.
                 cancelled = true;
                 results.push(
                     ToolFailure::Execution {
@@ -361,16 +359,12 @@ struct RoundInputs<'a> {
     observer: Option<&'a dyn RunObserver>,
 }
 
-/// The parts of a completion a finished round's record is built from,
-/// bundled so the functions that build one don't each need three separate
-/// parameters.
 struct RoundSummary {
     usage: Usage,
     stop_reason: StopReason,
     latency: Duration,
 }
 
-/// Accumulates what a run has produced so far.
 #[derive(Default)]
 struct RunState {
     appended: Vec<Message>,
@@ -396,8 +390,6 @@ impl RunState {
     }
 }
 
-/// Tracks consecutive, structurally identical dispatched tool calls in
-/// dispatch order across rounds.
 #[derive(Debug, Default)]
 struct StallTracker {
     last: Option<(String, serde_json::Value)>,
@@ -405,9 +397,6 @@ struct StallTracker {
 }
 
 impl StallTracker {
-    /// Records one dispatched call, incrementing the streak if it repeats
-    /// the previous call by name and structural argument equality, or
-    /// resetting it to one otherwise.
     fn record(&mut self, name: &str, arguments: &serde_json::Value) {
         let repeats_last = self
             .last
@@ -419,8 +408,6 @@ impl StallTracker {
         self.last = Some((name.to_owned(), arguments.clone()));
     }
 
-    /// The repeated tool name and streak length, if the streak has reached
-    /// `threshold`.
     fn tripped(&self, threshold: u32) -> Option<(String, u32)> {
         (self.streak >= threshold)
             .then(|| self.last.clone().map(|(name, _)| (name, self.streak)))
@@ -478,9 +465,6 @@ async fn push_round(
     state.appended.push(message);
 }
 
-/// After a round that dispatched tools without ending the run on its own,
-/// checks for a stop request and then a stall — in that order, matching the
-/// loop's documented rule — and finishes the run's record if either fired.
 fn stopped_or_stalled(
     state: &mut RunState,
     tool_context: &mut ToolContext,

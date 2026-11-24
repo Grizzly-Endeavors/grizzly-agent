@@ -12,8 +12,6 @@ fn wire_json(request: &CompletionRequest, model: &str) -> serde_json::Value {
     serde_json::to_value(build_request(request, model)).expect("the wire body always serializes")
 }
 
-/// A JSON-Pointer lookup (`/messages/0/role`), so tests never index a
-/// `Vec`/`Value` directly — `indexing_slicing` is denied even in tests.
 fn get<'a>(value: &'a serde_json::Value, pointer: &str) -> &'a serde_json::Value {
     value
         .pointer(pointer)
@@ -93,7 +91,6 @@ fn a_mixed_tool_result_and_text_user_message_becomes_tool_messages_then_one_user
     ]);
     let value = wire_json(&request, "gpt-test");
 
-    // assistant message, then both tool results, then one trailing user message
     assert_eq!(array_len(&value, "/messages"), 4);
     assert_eq!(get(&value, "/messages/1/role"), &serde_json::json!("tool"));
     assert_eq!(
@@ -248,8 +245,6 @@ fn a_response_format_becomes_strict_json_schema() {
         &serde_json::json!("answer")
     );
 }
-
-// --- Incoming: EventTranslator ----------------------------------------------
 
 fn chunk(json: serde_json::Value) -> ChunkWire {
     serde_json::from_value(json).expect("test fixture must parse")

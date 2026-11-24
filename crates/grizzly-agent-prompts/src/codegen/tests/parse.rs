@@ -44,7 +44,6 @@ fn rejects_leading_body_whitespace() {
 
 #[test]
 fn rejects_trailing_body_whitespace() {
-    // A double trailing newline survives the single-newline trim as trailing ws.
     let err = parse("---\nid: Greeting\ntype: prompt\n---\nHello\n\n").unwrap_err();
     assert!(
         matches!(err, PromptError::BodyWhitespace { .. }),

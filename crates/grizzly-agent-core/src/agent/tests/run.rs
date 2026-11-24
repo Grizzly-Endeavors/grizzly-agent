@@ -462,25 +462,33 @@ async fn stalled_ending_after_repeating_the_same_call() {
     );
 }
 
-/// Asserts every `ToolUse` in the trace has exactly one `ToolResult` with its id.
 fn assert_every_tool_use_has_one_result(messages: &[Message]) {
     let blocks = messages.iter().flat_map(|message| message.content.iter());
     let use_ids: Vec<&str> = blocks
         .clone()
-        .filter_map(|block| match block {
-            Content::ToolUse(tool_use) => Some(tool_use.id.as_str()),
-            _ => None,
+        .filter_map(|block| {
+            if let Content::ToolUse(tool_use) = block {
+                Some(tool_use.id.as_str())
+            } else {
+                None
+            }
         })
         .collect();
     let result_ids: Vec<&str> = blocks
-        .filter_map(|block| match block {
-            Content::ToolResult(result) => Some(result.tool_use_id.as_str()),
-            _ => None,
+        .filter_map(|block| {
+            if let Content::ToolResult(result) = block {
+                Some(result.tool_use_id.as_str())
+            } else {
+                None
+            }
         })
         .collect();
     for id in &use_ids {
         assert_eq!(
-            result_ids.iter().filter(|result_id| *result_id == id).count(),
+            result_ids
+                .iter()
+                .filter(|result_id| *result_id == id)
+                .count(),
             1,
             "tool use `{id}` must have exactly one result"
         );
@@ -573,9 +581,14 @@ async fn cancelled_ending_mid_tool_dispatch() {
         .messages
         .iter()
         .flat_map(|message| message.content.iter())
-        .find_map(|block| match block {
-            Content::ToolResult(result) if result.tool_use_id == "call-echo" => Some(result),
-            _ => None,
+        .find_map(|block| {
+            if let Content::ToolResult(result) = block
+                && result.tool_use_id == "call-echo"
+            {
+                Some(result)
+            } else {
+                None
+            }
         })
         .expect("the skipped tool use must get a result");
     assert!(skipped.is_error);

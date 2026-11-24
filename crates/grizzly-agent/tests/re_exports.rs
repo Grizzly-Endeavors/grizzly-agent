@@ -11,20 +11,17 @@ use std::sync::Arc;
 use futures_util::StreamExt;
 use std::borrow::Cow;
 
+#[cfg(feature = "test-support")]
+use grizzly_agent::{
+    Agent, AgentBuilder, DynamicSection, Limits, RoundRecord, RunEnding, RunObserver, RunRecord,
+    SystemSection, ToolCallRecord,
+};
 use grizzly_agent::{
     Completion, CompletionAccumulator, CompletionEvent, CompletionRequest, CompletionStream,
     Content, DuplicateToolName, Message, Model, ModelBuilder, NoParams, Provider, ProviderFailure,
     ResponseFormat, RetryPolicy, Role, RunFailure, RunTrace, StopReason, StopRequest, ToolContext,
     ToolDefinition, ToolFailure, ToolHandler, ToolResult, ToolSet, ToolSpec, ToolUse,
     TypedToolHandler, Usage,
-};
-// The turn loop and `Agent` are only exercised in the test-support-gated test
-// below, which is the one place a `ScriptedProvider` can drive a run without
-// a network; these imports and the fixtures under them go dark otherwise.
-#[cfg(feature = "test-support")]
-use grizzly_agent::{
-    Agent, AgentBuilder, DynamicSection, Limits, RoundRecord, RunEnding, RunObserver, RunRecord,
-    SystemSection, ToolCallRecord,
 };
 #[cfg(feature = "test-support")]
 use std::sync::Mutex;
@@ -200,8 +197,6 @@ async fn the_tool_model_is_reachable_through_the_facade() {
     );
 }
 
-/// A minimal [`Provider`] so this test exercises the facade's model-call
-/// surface without needing the `test-support` feature.
 struct StubProvider;
 
 #[async_trait::async_trait]
@@ -460,8 +455,6 @@ async fn agent_eval_runner_is_reachable_through_the_facade() {
 
     use grizzly_agent::{ScriptedProvider, ScriptedResponse};
 
-    /// An observer that only counts the events it sees, proving the runner
-    /// passes a case's own observer through to `Agent::run`.
     struct CountingObserver {
         events: Arc<AtomicUsize>,
     }

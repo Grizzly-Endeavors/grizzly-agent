@@ -22,7 +22,6 @@ pub(super) fn emit_schema(code: &mut Code, crate_path: &str, schema: &ToolSchema
     code.close("}),");
 }
 
-/// The `properties` object, one entry per parameter in source order.
 fn emit_properties(code: &mut Code, schema: &ToolSchema) {
     if schema.params.is_empty() {
         code.line("\"properties\": {},");
@@ -36,8 +35,6 @@ fn emit_properties(code: &mut Code, schema: &ToolSchema) {
     code.close("},");
 }
 
-/// One `"name": { "type", "description"[, "enum"] }` entry, with a trailing
-/// comma unless it is the last property.
 fn emit_property(code: &mut Code, name: &str, param: &Param, is_last: bool) {
     code.open(&format!("{}: {{", str_lit(name)));
     code.line(&format!("\"type\": {},", str_lit(json_type(&param.ty))));
@@ -61,8 +58,6 @@ fn emit_property(code: &mut Code, name: &str, param: &Param, is_last: bool) {
     code.close(if is_last { "}" } else { "}," });
 }
 
-/// The `required` array of every non-optional parameter. Omitted entirely when
-/// empty (a schema with only optional or zero parameters).
 fn emit_required(code: &mut Code, schema: &ToolSchema) {
     let required = schema
         .params

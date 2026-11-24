@@ -9,9 +9,6 @@ fn splits_frontmatter_and_body() {
 
 #[test]
 fn splits_crlf_delimiters() {
-    // Only the `\r\n` at each delimiter boundary is consumed; a mid-content
-    // `\r` (from the CRLF line ending before the closing delimiter) survives
-    // into the yaml text, same as the un-normalized body does.
     let (yaml, body) = split_frontmatter("---\r\nid: Greeting\r\n---\r\nHello.").unwrap();
     assert_eq!(yaml, "id: Greeting\r");
     assert_eq!(body, "Hello.");

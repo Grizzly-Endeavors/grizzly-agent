@@ -40,8 +40,6 @@ fn empty_tools() -> ToolSet {
     ToolSet::new(Vec::<Box<dyn ToolHandler>>::new()).expect("no tools registers cleanly")
 }
 
-/// A repeat's scratch directory: a real temp directory on disk, kept alive
-/// for the repeat's lifetime and read back by `check`.
 struct ScratchDir {
     dir: TempDir,
 }
@@ -52,9 +50,6 @@ impl ScratchDir {
     }
 }
 
-/// A repeat that sets up a scratch directory, runs a scripted agent that
-/// replies without touching it, and passes when the run completed and the
-/// marker `set_up` seeded is still there.
 struct PassingCase {
     meta: CaseMeta,
 }
@@ -144,8 +139,6 @@ async fn a_passing_repeat_carries_no_transcript() {
     );
 }
 
-/// A repeat whose agent answers, but whose scorer reads the reply and
-/// decides it was wrong.
 struct ScorerMissCase {
     meta: CaseMeta,
 }
@@ -281,7 +274,6 @@ async fn a_check_error_fails_the_repeat_without_scoring() {
     );
 }
 
-/// A repeat whose environment can never be set up.
 struct SetUpErrorCase {
     meta: CaseMeta,
 }
@@ -345,7 +337,6 @@ async fn a_set_up_error_fails_the_repeat_before_the_agent_runs() {
     );
 }
 
-/// A repeat whose provider fails outright.
 struct ProviderFailureCase {
     meta: CaseMeta,
     checked: AtomicBool,
@@ -419,7 +410,6 @@ async fn a_provider_failure_is_unavailable_and_skips_check_and_score() {
     );
 }
 
-/// A repeat whose task input itself breaks the loop's invariants.
 struct InvalidConversationCase {
     meta: CaseMeta,
 }
@@ -439,8 +429,6 @@ impl AgentEvalCase for InvalidConversationCase {
     }
 
     async fn set_up(&self) -> Result<((), Vec<Message>), String> {
-        // An Agent's sections are its only system prompt; a system-role
-        // message in the conversation breaks that invariant.
         Ok(((), vec![Message::system("nope")]))
     }
 
@@ -476,7 +464,6 @@ async fn an_invalid_conversation_fails_the_repeat() {
     );
 }
 
-/// A repeat that tracks how many repeats of it are in flight at once.
 struct ConcurrencyProbeCase {
     meta: CaseMeta,
     delay: Duration,
@@ -569,7 +556,6 @@ async fn repeats_are_bounded_by_a_raised_concurrency_limit() {
     );
 }
 
-/// An observer that counts every event and round it sees.
 struct CountingObserver {
     events: Arc<AtomicUsize>,
     rounds: Arc<AtomicUsize>,

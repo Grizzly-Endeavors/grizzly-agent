@@ -2,9 +2,6 @@ use super::*;
 use crate::tools::context::ToolContext;
 use crate::tools::handler::ToolHandler;
 
-/// A hand-written runtime tool, built with an owned wire name rather than a
-/// generated static — the shape a consumer wraps around a discovered or
-/// configured tool (skills, MCP, config).
 struct EchoTool {
     label: String,
 }

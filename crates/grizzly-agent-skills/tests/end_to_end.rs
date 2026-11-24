@@ -47,8 +47,6 @@ fn text_completion(text: &str) -> Completion {
     }
 }
 
-/// The request's system message text, or `None` if it does not open with
-/// exactly one.
 fn system_text(request: &CompletionRequest) -> Option<&str> {
     let Some(Message {
         role: Role::System,

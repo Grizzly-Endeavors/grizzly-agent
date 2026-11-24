@@ -81,9 +81,6 @@ pub(crate) fn is_valid_enum_value(value: &str) -> bool {
     chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
-/// The strict and reserved Rust keywords that cannot be bare identifiers. Kept
-/// as a flat set because placeholder names are always lowercase, so the
-/// uppercase `Self` variant never applies.
 fn is_rust_keyword(name: &str) -> bool {
     const KEYWORDS: &[&str] = &[
         "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",

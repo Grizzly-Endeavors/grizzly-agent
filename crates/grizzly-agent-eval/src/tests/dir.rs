@@ -53,7 +53,6 @@ fn write_report_writes_valid_json_at_report_path() {
     );
 }
 
-/// A directory this test owns for its whole lifetime, removed on drop.
 struct TempDir(PathBuf);
 
 impl TempDir {

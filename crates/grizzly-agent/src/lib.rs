@@ -13,8 +13,6 @@
 //! Documentation for each item lives where it is defined, in its member
 //! crate; this crate adds none of its own beyond this overview.
 
-// Conversation types. Unconditional: core is a normal (non-optional)
-// dependency, so these are present with no features enabled at all.
 #[doc(inline)]
 pub use grizzly_agent_core::Content;
 #[doc(inline)]
@@ -26,7 +24,6 @@ pub use grizzly_agent_core::ToolResult;
 #[doc(inline)]
 pub use grizzly_agent_core::ToolUse;
 
-// The error taxonomy. Unconditional for the same reason.
 #[doc(inline)]
 pub use grizzly_agent_core::ProviderFailure;
 #[doc(inline)]
@@ -34,8 +31,6 @@ pub use grizzly_agent_core::RunFailure;
 #[doc(inline)]
 pub use grizzly_agent_core::ToolFailure;
 
-// The tool model. Unconditional for the same reason: dispatching tools
-// through a `ToolSet` needs no provider, skill, or eval feature.
 #[doc(inline)]
 pub use grizzly_agent_core::DuplicateToolName;
 #[doc(inline)]
@@ -83,9 +78,6 @@ pub use grizzly_agent_core::StopReason;
 #[doc(inline)]
 pub use grizzly_agent_core::Usage;
 
-// The turn loop and `Agent`. Unconditional: the loop needs no provider,
-// skill, or eval feature — only a `Model` and a `ToolSet`, both already
-// unconditional above.
 #[doc(inline)]
 pub use grizzly_agent_core::Agent;
 #[doc(inline)]
@@ -109,7 +101,6 @@ pub use grizzly_agent_core::SystemSection;
 #[doc(inline)]
 pub use grizzly_agent_core::ToolCallRecord;
 
-// The OpenAI-compatible provider client.
 #[cfg(feature = "openai")]
 #[doc(inline)]
 pub use grizzly_agent_providers::OpenAiCompatibleProvider;
@@ -117,7 +108,6 @@ pub use grizzly_agent_providers::OpenAiCompatibleProvider;
 #[doc(inline)]
 pub use grizzly_agent_providers::OpenAiCompatibleProviderBuilder;
 
-// The Anthropic provider client.
 #[cfg(feature = "anthropic")]
 #[doc(inline)]
 pub use grizzly_agent_providers::AnthropicProvider;
@@ -125,7 +115,6 @@ pub use grizzly_agent_providers::AnthropicProvider;
 #[doc(inline)]
 pub use grizzly_agent_providers::AnthropicProviderBuilder;
 
-// The scripted provider. Forwarded from core's `test-support` feature.
 #[cfg(feature = "test-support")]
 #[doc(inline)]
 pub use grizzly_agent_core::ScriptedProvider;
@@ -141,7 +130,6 @@ pub use grizzly_agent_core::ScriptedResponse;
 #[doc(hidden)]
 pub use grizzly_agent_core::serde_json;
 
-// Agent Skills: format, index, and activation.
 #[cfg(feature = "skills")]
 #[doc(inline)]
 pub use grizzly_agent_skills::InvalidSkillReason;
@@ -173,8 +161,6 @@ pub use grizzly_agent_skills::deactivate_skill_tool;
 #[doc(inline)]
 pub use grizzly_agent_skills::parse_skill;
 
-// ResponseEval, AgentEval, and the shared eval core: case metadata,
-// verdicts, aggregation, and the report both feed.
 #[cfg(feature = "eval")]
 #[doc(inline)]
 pub use grizzly_agent_eval::AgentEvalCase;

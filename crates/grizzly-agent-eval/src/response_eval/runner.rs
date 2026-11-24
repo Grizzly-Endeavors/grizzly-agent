@@ -84,8 +84,6 @@ impl ResponseEvalRunner {
             .collect()
     }
 
-    /// Run one repeat of `case`: build its request, call the model under its
-    /// resolved timeout, and score the reply.
     async fn run_one<C: ResponseEvalCase>(&self, case: &C) -> RepeatRecord {
         let request = case.build_request();
         let timeout = self.effective_timeout(case.timeout());
@@ -123,8 +121,6 @@ impl ResponseEvalRunner {
     }
 }
 
-/// Parse and score `completion` against `case`'s expectation, keeping the
-/// reply's raw text in the record's detail whenever the verdict misses.
 fn score_reply<C: ResponseEvalCase>(
     case: &C,
     completion: &Completion,
@@ -151,8 +147,6 @@ fn score_reply<C: ResponseEvalCase>(
     }
 }
 
-/// The reply's visible text: every [`Content::Text`] block joined by
-/// newlines, excluding reasoning and tool blocks.
 fn reply_text(completion: &Completion) -> String {
     completion
         .content

@@ -4,7 +4,6 @@ use super::RunObserver;
 use crate::agent::trace::{RoundRecord, ToolCallRecord};
 use crate::completion::{CompletionEvent, StopReason, Usage};
 
-/// An observer that implements nothing but the trait's defaults.
 struct SilentObserver;
 
 impl RunObserver for SilentObserver {}
