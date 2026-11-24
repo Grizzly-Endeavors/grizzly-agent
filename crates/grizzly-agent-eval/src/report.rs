@@ -166,7 +166,6 @@ pub fn render_summary(report: &Report) -> String {
     lines.join("\n")
 }
 
-/// A canary is marked in the table: its threshold of 1.0 is not a typo.
 fn display_name(aggregate: &CaseAggregate) -> String {
     if aggregate.canary {
         format!("{} (canary)", aggregate.name)

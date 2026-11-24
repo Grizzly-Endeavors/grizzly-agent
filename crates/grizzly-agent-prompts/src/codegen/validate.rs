@@ -20,7 +20,6 @@ use super::parse::{
     RawAnnotations, RawFile, RawVariable, TokenizeError, parse_file, parse_raw_param, tokenize_body,
 };
 
-/// Whether `sent_when` is required or forbidden for a file's type.
 enum SentWhen {
     Required,
     Forbidden,
@@ -104,7 +103,6 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), PromptError> {
     Ok(())
 }
 
-/// Validate one parsed file into its model form.
 fn validate_file(raw: RawFile) -> Result<PromptFile, PromptError> {
     let id = validate_id(&raw)?;
     let Some(kind_str) = raw.kind.clone() else {
@@ -131,7 +129,6 @@ fn validate_file(raw: RawFile) -> Result<PromptFile, PromptError> {
     })
 }
 
-/// Rule: `id` present, matches the `PascalCase` grammar, equals the filename stem.
 fn validate_id(raw: &RawFile) -> Result<String, PromptError> {
     let id = raw.id.clone().ok_or_else(|| PromptError::MissingId {
         path: raw.rel_path.clone(),
@@ -216,7 +213,6 @@ fn validate_params(raw: &RawFile) -> Result<(PromptKind, Annotations), PromptErr
     Ok((PromptKind::Params { schema }, annotations))
 }
 
-/// Rule: a tool declares exactly one of `tool_schema` or `params_from`.
 fn validate_tool_schema_source(raw: &RawFile) -> Result<ToolSchemaRef, PromptError> {
     match (raw.tool_schema.as_ref(), raw.params_from.as_ref()) {
         (Some(_), Some(_)) => Err(PromptError::SchemaSourceAmbiguous {
@@ -230,7 +226,6 @@ fn validate_tool_schema_source(raw: &RawFile) -> Result<ToolSchemaRef, PromptErr
     }
 }
 
-/// Build and validate a `tool_schema` map into an ordered [`ToolSchema`].
 fn build_tool_schema(raw: &RawFile, map: &Hash) -> Result<ToolSchema, PromptError> {
     let mut params = Vec::new();
     for (key, value) in map {
@@ -245,8 +240,6 @@ fn build_tool_schema(raw: &RawFile, map: &Hash) -> Result<ToolSchema, PromptErro
     Ok(ToolSchema { params })
 }
 
-/// Rule set for a single parameter: legal name, known type, present description,
-/// and enum-value grammar.
 fn validate_param(
     raw: &RawFile,
     name: &str,
@@ -345,8 +338,6 @@ fn reject_values(
     Ok(())
 }
 
-/// Rule: `{{` must not appear in text that is sent verbatim (tool/params bodies
-/// and parameter descriptions).
 fn reject_static_placeholder(raw: &RawFile, text: &str, location: &str) -> Result<(), PromptError> {
     if text.contains("{{") {
         return Err(PromptError::PlaceholderInStaticText {
@@ -382,7 +373,6 @@ fn forbid_annotation_variables(raw: &RawFile) -> Result<(), PromptError> {
     Ok(())
 }
 
-/// Distinct placeholder names in body first-appearance order.
 fn unique_placeholders(body: &[BodySegment]) -> Vec<String> {
     let mut seen = BTreeSet::new();
     let mut out = Vec::new();
@@ -396,8 +386,6 @@ fn unique_placeholders(body: &[BodySegment]) -> Vec<String> {
     out
 }
 
-/// Rule: `variables` present iff the body has placeholders, and each placeholder
-/// has exactly one non-empty entry (both directions).
 fn validate_variables(
     raw: &RawFile,
     placeholders: &[String],
@@ -461,8 +449,6 @@ fn build_variables(
     Ok(out)
 }
 
-/// Common annotation rules shared by all three types: `used_by`, `reasoning`,
-/// and the type-specific `sent_when` policy.
 fn validate_common_annotations(
     raw: &RawFile,
     sent_when: &SentWhen,
@@ -572,7 +558,6 @@ fn validate_reasoning(raw: &RawFile, ann: &RawAnnotations) -> Result<Vec<String>
     Ok(list.clone())
 }
 
-/// Rule: every `params_from` names an existing params file.
 fn check_params_refs(files: &[PromptFile]) -> Result<(), PromptError> {
     let params_ids = params_id_set(files);
     for file in files {
@@ -591,7 +576,6 @@ fn check_params_refs(files: &[PromptFile]) -> Result<(), PromptError> {
     Ok(())
 }
 
-/// Rule: every params file is referenced by at least one tool.
 fn check_unreferenced_params(files: &[PromptFile]) -> Result<(), PromptError> {
     let referenced: BTreeSet<&str> = files
         .iter()
@@ -621,7 +605,6 @@ fn check_unreferenced_params(files: &[PromptFile]) -> Result<(), PromptError> {
     Ok(())
 }
 
-/// Rule: colliding wire names must be explicitly declared on every side.
 fn check_wire_names(files: &[PromptFile]) -> Result<(), PromptError> {
     let mut groups: BTreeMap<String, Vec<(PathBuf, bool)>> = BTreeMap::new();
     for file in files {
@@ -646,8 +629,6 @@ fn check_wire_names(files: &[PromptFile]) -> Result<(), PromptError> {
     Ok(())
 }
 
-/// Rule: no generated Rust item name (a synthesized `<Id>Params` struct or an
-/// `<Id><Param>` enum) collides with a declared id or another generated name.
 fn check_derived_names(files: &[PromptFile]) -> Result<(), PromptError> {
     let mut names: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
     for file in files {
@@ -704,7 +685,6 @@ fn register_enum_names(
     }
 }
 
-/// A trimmed, non-empty clone of an optional annotation string, or `None`.
 fn non_empty(value: Option<&str>) -> Option<String> {
     value
         .filter(|s| !s.trim().is_empty())

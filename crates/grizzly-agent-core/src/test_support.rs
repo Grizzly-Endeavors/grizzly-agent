@@ -81,9 +81,6 @@ impl ScriptedProvider {
     }
 }
 
-/// Locks `state`, recovering it if an earlier panic poisoned the mutex rather
-/// than panicking again here — a second panic on top of the first would only
-/// obscure whichever assertion failed originally.
 fn lock_state(state: &Mutex<ScriptedProviderState>) -> MutexGuard<'_, ScriptedProviderState> {
     state
         .lock()

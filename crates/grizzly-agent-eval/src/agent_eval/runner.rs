@@ -87,8 +87,6 @@ impl AgentEvalRunner {
     }
 }
 
-/// Run one repeat of `case`: set up its environment, run its agent, check
-/// the environment, and score the result.
 async fn run_one<C: AgentEvalCase>(case: &C) -> RepeatRecord {
     let start = Instant::now();
     let agent = case.build_agent();
@@ -117,8 +115,6 @@ async fn run_one<C: AgentEvalCase>(case: &C) -> RepeatRecord {
     }
 }
 
-/// Check the environment and, if that succeeds, score the run — building
-/// the repeat's report detail either way.
 async fn score_run<C: AgentEvalCase>(
     case: &C,
     environment: &C::Environment,
@@ -141,10 +137,6 @@ async fn score_run<C: AgentEvalCase>(
     }
 }
 
-/// One repeat's report detail: the run's ending, total usage, round count,
-/// and check results, with the full transcript kept only when
-/// `include_transcript` — set for every miss, so a wrong or failed repeat is
-/// diagnosable without a rerun.
 #[derive(Debug, Serialize)]
 struct RepeatDetail<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -156,8 +148,6 @@ struct RepeatDetail<'a> {
     transcript: Option<&'a [Message]>,
 }
 
-/// [`RunEnding`] as it appears in the report — [`RunEnding`] itself carries
-/// no `Serialize` impl, since core has no reason to depend on `serde` for it.
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum EndingDetail {
@@ -203,10 +193,6 @@ fn run_detail(
     serde_json::to_value(&detail).unwrap_or(serde_json::Value::Null)
 }
 
-/// The detail for a [`RunFailure::Provider`] repeat: no [`RunEnding`], since
-/// the run never reached one, but every round completed before the failure —
-/// kept in full, as the design requires, since this classifies as
-/// [`crate::VerdictCategory::Unavailable`] and is always a miss.
 fn provider_failure_detail(trace: &RunTrace) -> serde_json::Value {
     let detail = RepeatDetail {
         ending: None,

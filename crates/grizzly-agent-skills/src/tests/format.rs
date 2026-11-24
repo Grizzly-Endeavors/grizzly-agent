@@ -3,8 +3,6 @@
 
 use super::*;
 
-/// Wraps `frontmatter` in `---` delimiters with a trivial body, the shape
-/// every case below starts from.
 fn skill_md(frontmatter: &str) -> String {
     format!("---\n{frontmatter}\n---\n\nDo the thing.\n")
 }

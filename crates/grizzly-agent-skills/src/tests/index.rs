@@ -3,8 +3,6 @@
 
 use super::*;
 
-/// Writes a minimal, valid `SKILL.md` under `root/name/`, creating the
-/// directory. Returns that directory's path.
 fn write_skill(root: &Path, name: &str, description: &str) -> PathBuf {
     let dir = root.join(name);
     std::fs::create_dir_all(&dir).unwrap();
@@ -16,8 +14,6 @@ fn write_skill(root: &Path, name: &str, description: &str) -> PathBuf {
     dir
 }
 
-/// Writes a `SKILL.md` whose declared `name` does not match `dir_name`, so
-/// the scan reports it as invalid.
 fn write_invalid_skill(root: &Path, dir_name: &str) -> PathBuf {
     let dir = root.join(dir_name);
     std::fs::create_dir_all(&dir).unwrap();

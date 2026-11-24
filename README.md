@@ -1,37 +1,26 @@
 # grizzly-agent
 
-The one dependency a Rust project adds to build an agent or otherwise work with LLMs, so each new project reuses what the last one built instead of re-solving it. It is a dependency, not a framework and not an application — it provides the pieces an agent is assembled from and leaves policy to the consumer.
+Shared Rust primitives for building agents and calling LLMs. Provides reusable pieces and traits; leaves product policy (model choice, tool permissions, persistence, scoring policy) to the consumer.
 
 ## Scope
 
-The admission bar is **"would I want to use this again?"** — not "do two projects already need it." Waiting for a second consumer to prove a primitive is worth extracting only guarantees the second project starts with a migration and a copy that has already drifted from the first. A primitive is admitted when it embeds no product decision and the consumer could not do it better locally; where two projects need the same thing but shape it differently, what belongs here is the trait, not the implementation. [ADR-0008](docs/decisions/0008-admission-bar-and-workspace-shape.md) has the reasoning.
-
-Anything encoding a product decision — which model, what a tool may do, how a conversation is persisted, what a good answer looks like — belongs in the consumer, behind a trait this crate defines but does not implement.
-
-**Deliberately out**, each with a recorded reason so the question closes instead of recurring:
-
-| Not here | Why |
-| --- | --- |
-| MCP | Permanent. Depend on `rmcp` directly — a wrapper adds nothing. ([ADR-0002](docs/decisions/0002-no-mcp.md)) |
-| Token counting | Providers already return exact counts; this crate reports them rather than estimating. ([ADR-0004](docs/decisions/0004-provider-reported-token-counts.md)) |
-| Transcript trimming and session storage, telemetry/recording, structured-output repair, memory and retrieval, cost tracking | Each is a candidate for later work; none is needed for the current shape to be complete. |
+- **Admission bar:** a primitive belongs here when it embeds no product decision and a consumer could not do it better locally. Where consumers shape behavior differently, expose the trait rather than a concrete policy.
+- **Out of scope:** MCP (depend on `rmcp` directly) and local token estimation (providers report exact token counts).
 
 ## Workspace
 
-This repository is a Cargo workspace; every member is versioned together. Six packages exist today:
+All members are versioned together under `crates/`:
 
 | Package | Responsibility |
 | --- | --- |
-| `grizzly-agent` | **Facade.** Re-exports the runtime crates behind features. The one line a consumer adds for runtime use. |
-| `grizzly-agent-core` | Conversation types, the error taxonomy, the tool model, model calls, and the turn loop and `Agent`. No HTTP. |
-| `grizzly-agent-providers` | Concrete provider clients — Anthropic and OpenAI-compatible — each behind its own feature. Depends on core. |
-| `grizzly-agent-prompts` | Prompt-file frontmatter parsing (default), codegen (`codegen` feature, a build-dependency), and call-site verification (`verify` feature, a dev-dependency). Does not depend on core. |
-| `grizzly-agent-eval` | `ResponseEval` and `AgentEval` over the shared case metadata, verdict, aggregation, and report core they both feed. Depends on core, not on providers. |
-| `grizzly-agent-skills` | Agent Skills: format, index, and activation, per the open [Agent Skills specification](https://agentskills.io/specification). Depends on core and on prompts' default face. |
+| `grizzly-agent` | Facade re-exporting runtime crates behind feature flags. |
+| `grizzly-agent-core` | Conversation types, error taxonomy, tool model, model calls, turn loop, and `Agent` (no HTTP). |
+| `grizzly-agent-providers` | Anthropic and OpenAI-compatible HTTP clients behind feature flags. |
+| `grizzly-agent-prompts` | Prompt-file frontmatter parsing, build-time codegen (`codegen`), and call-site verification (`verify`). |
+| `grizzly-agent-eval` | `ResponseEval`, `AgentEval`, and shared scoring/report core. |
+| `grizzly-agent-skills` | Agent Skills index and activation per the [Agent Skills specification](https://agentskills.io/specification). |
 
-Lints, toolchain, and deny policy live once at the workspace root; every member inherits the lint table unchanged via `lints.workspace = true`.
-
-**Consumption rule.** A consumer depending on more than one workspace member — for example the facade for runtime use and `grizzly-agent-prompts` on its build edge — must point every member at the same git revision. Cargo otherwise resolves two copies of `grizzly-agent-core`, and a generated `ToolSpec` from one copy will not type-check against the facade's re-export from the other.
+**Consumption rule:** A consumer depending on more than one workspace member (for example `grizzly-agent` at runtime and `grizzly-agent-prompts` as a build-dependency) must pin every member to the same git revision. Otherwise Cargo resolves two copies of `grizzly-agent-core` and generated `ToolSpec` types will not match the facade's re-exports.
 
 ## Use it
 
@@ -40,22 +29,18 @@ Lints, toolchain, and deny policy live once at the workspace root; every member 
 grizzly-agent = { git = "ssh://git@github.com/Grizzly-Endeavors/grizzly-agent.git" }
 ```
 
-A bare dependency with no features enabled gets `grizzly-agent-core` alone — conversation types and errors, with no provider, skill, or eval machinery pulled in.
+With no features enabled, `grizzly-agent` pulls only `grizzly-agent-core`.
 
 ## Development
 
 ```sh
-cargo test --workspace --quiet                                          # tests (default features)
-cargo test --workspace --all-features --quiet                           # tests (all features — exercises prompts' codegen/verify)
-cargo fmt --all                                                         # format
-cargo clippy --workspace --all-targets -- -D warnings                   # lint (default features)
-cargo clippy --workspace --all-targets --all-features -- -D warnings    # lint (all features)
-cargo deny check                                                        # audit dependencies
-cargo doc --workspace --no-deps --all-features --open                   # read the public API
+cargo test --workspace --quiet
+cargo test --workspace --all-features --quiet
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo deny check
+cargo doc --workspace --no-deps --all-features --open
 ```
 
-With [just](https://github.com/casey/just) installed, `just ci-local` runs the full gate (format, lint, test, deny, and the provider feature matrix) and `just doc` runs the last command above.
-
-Git hooks enforce the same checks on every commit. Install them once with `./.githooks/install.sh`.
-
-Conventions this project follows — and the reasoning behind them — are in [CLAUDE.md](CLAUDE.md). Decisions that were close calls are recorded in [docs/decisions/](docs/decisions/).
+`just ci-local` runs the full gate (format, lint, test, deny, and the provider feature matrix). Install pre-commit hooks with `./.githooks/install.sh`. Conventions live in [AGENTS.md](AGENTS.md).

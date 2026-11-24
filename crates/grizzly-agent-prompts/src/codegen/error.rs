@@ -235,9 +235,6 @@ impl fmt::Display for PromptError {
 }
 
 impl PromptError {
-    /// The single file this error anchors to, printed as a prefix. Errors that
-    /// span multiple files (collisions) or none report their paths inline in
-    /// [`Self::write_reason`] and return `None` here.
     fn location(&self) -> Option<&Path> {
         match self {
             Self::Io { path, .. }
@@ -274,7 +271,6 @@ impl PromptError {
         }
     }
 
-    /// The rule-specific reason, without the file prefix.
     fn write_reason(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io { message, .. } => write!(f, "{message}"),

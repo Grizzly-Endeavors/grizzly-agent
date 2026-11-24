@@ -10,15 +10,8 @@ use super::stream;
 use super::wire;
 use crate::transport::{DEFAULT_IDLE_TIMEOUT, build_client, status_failure, transport_failure};
 
-/// The Anthropic API version this provider speaks on the wire, per
-/// `platform.claude.com/docs/en/api/overview` — current and stable since
-/// the Messages API's original release; verified current as of this
-/// provider's implementation.
 const DEFAULT_API_VERSION: &str = "2023-06-01";
 
-/// Anthropic requires `max_tokens` on every request; the OpenAI-compatible
-/// wire treats it as optional. This is the fallback used when neither the
-/// request nor `Model`'s own default sets one.
 const DEFAULT_MAX_TOKENS: u32 = 4096;
 
 const MESSAGES_PATH: &str = "/v1/messages";

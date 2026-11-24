@@ -2,9 +2,6 @@ use grizzly_agent_core::StopReason;
 
 use super::*;
 
-/// Feed `body` through a fresh [`ChunkedReader`], split into pieces of
-/// `chunk_bytes` so line boundaries can land anywhere, and collect every
-/// item it queues.
 fn read_split(body: &[u8], chunk_bytes: usize) -> Vec<Item> {
     let mut reader = ChunkedReader::new("test-provider".to_owned());
     for piece in body.chunks(chunk_bytes.max(1)) {
@@ -97,9 +94,6 @@ fn the_text_stream_reassembles_identically_split_at_every_byte_boundary() {
 
 #[test]
 fn a_multibyte_character_split_across_transport_chunks_survives() {
-    // The emoji is written directly (not JSON-escaped), so its raw 4-byte
-    // UTF-8 encoding sits in the wire bytes — exactly what a chunk boundary
-    // can land in the middle of.
     let body = concat!(
         "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"pong \u{1F60A}\"}}]}\n",
         "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n",

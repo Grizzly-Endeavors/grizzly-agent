@@ -16,8 +16,6 @@ use grizzly_agent_core::{
 };
 use serde::{Deserialize, Serialize};
 
-// --- Outgoing: `CompletionRequest` to the wire ------------------------------
-
 /// The outgoing request body.
 #[derive(Debug, Serialize)]
 pub(crate) struct RequestWire<'a> {
@@ -199,8 +197,6 @@ fn response_format_to_wire(format: &ResponseFormat) -> OutputConfigWire {
         },
     }
 }
-
-// --- Incoming: a streamed event to `CompletionEvent`s -----------------------
 
 /// One Messages API streaming event, discriminated by its `type` field.
 /// Event and block kinds this crate does not translate (server tool use,
@@ -389,11 +385,6 @@ impl EventTranslator {
                 });
                 Ok(vec![CompletionEvent::Usage(usage.into())])
             }
-            // A block-level start/stop we don't track further, `message_stop`
-            // (the caller releases the buffered finish event once it sees
-            // this event itself, via `finalize`), a keepalive `ping`, or a
-            // block/event kind this crate does not translate: none produce
-            // an event here.
             StreamEventWire::ContentBlockStart { .. }
             | StreamEventWire::ContentBlockStop {}
             | StreamEventWire::MessageStop {}

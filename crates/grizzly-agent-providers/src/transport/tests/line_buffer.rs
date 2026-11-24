@@ -1,7 +1,5 @@
 use super::*;
 
-/// Feed `body` through a fresh [`LineBuffer`] `chunk_bytes` at a time, plus
-/// whatever the trailing [`LineBuffer::flush`] returns.
 fn read_split(body: &[u8], chunk_bytes: usize) -> Vec<String> {
     let mut buffer = LineBuffer::default();
     let mut lines = Vec::new();

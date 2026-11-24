@@ -29,9 +29,6 @@ use crate::index::SkillIndex;
 /// active set.
 pub struct SkillState {
     index: SkillIndex,
-    // Insertion-order pairs rather than a map: `active_names` promises
-    // activation order, and re-activating a skill already in the set keeps
-    // its original position rather than bumping it to the end.
     active: Mutex<Vec<(String, String)>>,
 }
 
@@ -68,10 +65,6 @@ impl SkillState {
         lock(&self.active).iter().any(|(active, _)| active == name)
     }
 
-    /// Loads `name`'s body from disk and adds it to the active set.
-    ///
-    /// Re-activating a name already active reloads its body from disk but
-    /// keeps its original position in activation order.
     async fn activate(&self, name: &str) -> Result<(), ActivationError> {
         let Some(directory) = self.index.directory(name) else {
             return Err(ActivationError::UnknownSkill {
@@ -116,8 +109,6 @@ impl SkillState {
         true
     }
 
-    /// The index's compact listing, followed by every active skill's body,
-    /// in activation order.
     fn render(&self) -> String {
         let index_listing = self.index.render();
         let active = lock(&self.active);
@@ -164,9 +155,6 @@ enum ActivationError {
 }
 
 impl ActivationError {
-    /// Renders this failure as what the model reads back: a correctable
-    /// argument problem for an unknown skill name, an execution problem for
-    /// everything else.
     fn into_tool_failure(self, tool_name: &'static str) -> ToolFailure {
         let message = self.to_string();
         match self {

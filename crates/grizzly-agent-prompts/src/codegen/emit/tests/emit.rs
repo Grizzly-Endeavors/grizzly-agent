@@ -6,10 +6,6 @@ fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/valid")
 }
 
-/// Text-only golden for the default crate path (`grizzly_agent`). Never
-/// compiled here — this crate has no `grizzly_agent` dependency to compile it
-/// against; `tests/golden.rs` compiles the `grizzly_agent_core`-targeted
-/// sibling golden generated from the same fixture tree.
 fn golden_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src/codegen/emit/tests/fixtures/expected_prompts.rs")
@@ -22,10 +18,6 @@ fn regenerate_golden() {
     std::fs::write(golden_path(), source).unwrap();
 }
 
-/// The checked-in golden must match what the emitter produces today. If this
-/// fails, the emitter changed — rerun `regenerate_golden` and review the diff
-/// (and regenerate `tests/fixtures/expected_prompts.rs` at the crate root the
-/// same way, targeting `grizzly_agent_core`).
 #[test]
 fn golden_is_current() {
     let generated = super::generate(&fixtures_dir(), DEFAULT_CRATE_PATH).unwrap();

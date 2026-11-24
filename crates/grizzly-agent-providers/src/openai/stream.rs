@@ -133,11 +133,6 @@ impl ChunkedReader {
     }
 }
 
-/// An error payload delivered mid-stream instead of as an HTTP status.
-/// Treated as the endpoint rejecting the request outright rather than a
-/// transient failure: retrying an identical request that was already
-/// rejected mid-generation is more likely to repeat the rejection than
-/// resolve it.
 fn mid_stream_error_failure(provider: &str, error: &serde_json::Value) -> ProviderFailure {
     let message = error
         .get("message")

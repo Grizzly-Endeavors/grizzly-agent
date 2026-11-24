@@ -12,7 +12,6 @@ use crate::verdict::{Verdict, VerdictCategory};
 
 use super::*;
 
-/// A case scoring a number the model was asked for.
 struct NumberCase {
     meta: CaseMeta,
     expected: i64,
@@ -210,8 +209,6 @@ async fn a_call_that_fails_before_the_stream_opens_is_unavailable() {
     );
 }
 
-/// Wraps a [`Provider`], adding an artificial delay before delegating and
-/// tracking how many calls are in flight at once.
 struct TrackingProvider {
     inner: ScriptedProvider,
     delay: Duration,

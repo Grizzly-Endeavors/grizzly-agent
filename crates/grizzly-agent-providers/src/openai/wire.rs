@@ -9,8 +9,6 @@ use grizzly_agent_core::{
 };
 use serde::{Deserialize, Serialize};
 
-// --- Outgoing: `CompletionRequest` to the wire ------------------------------
-
 /// The outgoing request body.
 #[derive(Debug, Serialize)]
 pub(crate) struct RequestWire<'a> {
@@ -211,8 +209,6 @@ fn response_format_to_wire(format: &ResponseFormat) -> ResponseFormatWire {
     }
 }
 
-// --- Incoming: a streamed chunk to `CompletionEvent`s -----------------------
-
 /// One chunk of a streamed completion, as served.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub(crate) struct ChunkWire {
@@ -254,10 +250,6 @@ pub(crate) struct DeltaWire {
 }
 
 impl DeltaWire {
-    /// The reasoning fragment under whichever spelling this stack uses.
-    /// `reasoning_content`, `reasoning`, and `thinking` all appear across
-    /// real OpenAI-compatible stacks for the same concept; the first present
-    /// wins.
     fn reasoning_text(&self) -> Option<&str> {
         self.reasoning_content
             .as_deref()
@@ -393,8 +385,6 @@ impl EventTranslator {
         let Some(fragment) = delta.function.and_then(|function| function.arguments) else {
             return;
         };
-        // `absorb_tool_call_delta` always inserts `delta.index` above before
-        // reaching here, on this call or an earlier one.
         if let Some(id) = self.tool_call_ids.get(&delta.index) {
             events.push(CompletionEvent::ToolUseArgumentsDelta {
                 id: id.clone(),

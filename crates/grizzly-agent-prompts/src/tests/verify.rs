@@ -1,6 +1,5 @@
 use super::*;
 
-/// A valid no-variable prompt whose id is `Greeting`, used by `greet`.
 const GREETING: &str = "---
 id: Greeting
 type: prompt
@@ -14,7 +13,6 @@ annotations:
 ---
 Hello there.";
 
-/// A second valid prompt (`Farewell`, used by `bye`) for the aggregation case.
 const FAREWELL: &str = "---
 id: Farewell
 type: prompt
@@ -28,7 +26,6 @@ annotations:
 ---
 Goodbye.";
 
-/// Write each `(relative_path, content)` into a fresh tempdir.
 fn write_tree(files: &[(&str, &str)]) -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     for (rel, content) in files {
@@ -41,8 +38,6 @@ fn write_tree(files: &[(&str, &str)]) -> tempfile::TempDir {
     dir
 }
 
-/// Build a prompt tree and a source tree, then verify one against the other.
-/// Both tempdirs stay alive for the duration of the call.
 fn run(prompts: &[(&str, &str)], src: &[(&str, &str)]) -> Result<(), VerifyReport> {
     let prompts_dir = write_tree(prompts);
     let src_dir = write_tree(src);
@@ -78,8 +73,6 @@ fn resolves_used_by_paths_in_subdirectories() {
 
 #[test]
 fn flags_missing_source_file() {
-    // `discord.rs` is never created; a different file carries the id so the
-    // prompt is not also flagged as orphaned.
     let report = run(
         &[("Greeting.md", GREETING)],
         &[("elsewhere.rs", "// Greeting is referenced here")],
@@ -98,8 +91,6 @@ fn flags_missing_source_file() {
 
 #[test]
 fn flags_used_by_file_missing_the_id() {
-    // `discord.rs` has the function but not the id; another file carries the id
-    // so orphan does not fire — isolating the id-in-file check.
     let report = run(
         &[("Greeting.md", GREETING)],
         &[
@@ -118,7 +109,6 @@ fn flags_used_by_file_missing_the_id() {
 
 #[test]
 fn flags_used_by_file_missing_the_function() {
-    // `discord.rs` mentions the id but not `greet`.
     let report = run(
         &[("Greeting.md", GREETING)],
         &[("discord.rs", "fn other() { Greeting::render(); }")],
@@ -137,9 +127,6 @@ fn flags_used_by_file_missing_the_function() {
 
 #[test]
 fn flags_orphaned_prompt() {
-    // The id appears in no source file. Orphan fires alongside IdNotInFile (the
-    // used_by file necessarily lacks the id too), so assert it is present rather
-    // than the sole failure.
     let report = run(
         &[("Greeting.md", GREETING)],
         &[("discord.rs", "fn greet() {}")],
@@ -159,11 +146,8 @@ fn aggregates_failures_across_prompts() {
     let report = run(
         &[("Greeting.md", GREETING), ("Farewell.md", FAREWELL)],
         &[
-            // Carries both ids so neither prompt is orphaned.
             ("refs.rs", "// Greeting Farewell"),
-            // Has `bye` but not the `Farewell` id → IdNotInFile for Farewell.
             ("present.rs", "fn bye() {}"),
-            // Greeting's used_by file `discord.rs` is absent → MissingSourceFile.
         ],
     )
     .unwrap_err();
@@ -185,8 +169,6 @@ fn aggregates_failures_across_prompts() {
 
 #[test]
 fn propagates_load_failure() {
-    // A prompt missing its `reasoning` annotation fails to load; verify surfaces
-    // that as a single Load failure without touching the source tree.
     let broken = "---
 id: Broken
 type: prompt

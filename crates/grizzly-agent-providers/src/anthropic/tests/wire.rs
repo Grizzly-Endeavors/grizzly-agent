@@ -281,8 +281,6 @@ fn a_response_format_becomes_output_config_json_schema() {
     );
 }
 
-// --- Incoming: EventTranslator ----------------------------------------------
-
 fn event(json: serde_json::Value) -> StreamEventWire {
     serde_json::from_value(json).expect("test fixture must parse")
 }

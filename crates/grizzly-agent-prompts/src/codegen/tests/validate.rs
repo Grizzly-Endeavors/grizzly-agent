@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use super::*;
 
-/// Write each `(relative_path, content)` into a fresh tempdir and validate it.
 fn load_tree(files: &[(&str, &str)]) -> Result<PromptTree, PromptError> {
     let dir = tempfile::tempdir().unwrap();
     for (rel, content) in files {
@@ -93,8 +92,6 @@ annotations:
 ---
 Start a server.";
 
-// --- Accepting cases ---
-
 #[test]
 fn accepts_prompt_with_variable() {
     let tree = load_tree(&[("Greeting.md", GREETING)]).unwrap();
@@ -184,7 +181,6 @@ Ping the server.";
 
 #[test]
 fn accepts_explicit_wire_name_override_on_both_sides() {
-    // Two tools sharing a wire name is allowed when both declare it explicitly.
     let a = "---
 id: EditFileDiscord
 type: tool
@@ -222,8 +218,6 @@ fn accepts_empty_tree() {
     let tree = load_tree(&[]).unwrap();
     assert!(tree.files.is_empty());
 }
-
-// --- Rejecting cases: identity and type ---
 
 #[test]
 fn rejects_missing_id() {
@@ -269,8 +263,6 @@ fn rejects_unknown_type() {
     ));
 }
 
-// --- Rejecting cases: per-type key legality ---
-
 #[test]
 fn rejects_disallowed_key_on_prompt() {
     let content = "---\nid: Greeting\ntype: prompt\nname: nope\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nhi";
@@ -297,8 +289,6 @@ fn rejects_tool_with_no_schema_source() {
         PromptError::SchemaSourceMissing { .. }
     ));
 }
-
-// --- Rejecting cases: body and placeholders ---
 
 #[test]
 fn rejects_body_whitespace() {
@@ -381,8 +371,6 @@ fn rejects_placeholders_without_variables() {
     ));
 }
 
-// --- Rejecting cases: tool_schema parameters ---
-
 #[test]
 fn rejects_unsupported_param_type() {
     let content = "---\nid: EditFile\ntype: tool\ntool_schema:\n  tags:\n    type: array\n    description: a list\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nEdit.";
@@ -437,8 +425,6 @@ fn rejects_values_on_non_enum() {
     ));
 }
 
-// --- Rejecting cases: annotations ---
-
 #[test]
 fn rejects_missing_annotations() {
     let content = "---\nid: Greeting\ntype: prompt\n---\nhi";
@@ -484,8 +470,6 @@ fn rejects_variables_on_tool() {
     ));
 }
 
-// --- Rejecting cases: cross-file ---
-
 #[test]
 fn rejects_duplicate_id() {
     assert!(matches!(
@@ -513,7 +497,6 @@ fn rejects_unreferenced_params() {
 
 #[test]
 fn rejects_wire_name_collision() {
-    // A derived wire name (foo) collides with another tool's explicit override.
     let foo = "---\nid: Foo\ntype: tool\ntool_schema: {}\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nFoo.";
     let bar = "---\nid: Bar\ntype: tool\nname: foo\ntool_schema: {}\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nBar.";
     assert!(matches!(
@@ -524,9 +507,6 @@ fn rejects_wire_name_collision() {
 
 #[test]
 fn rejects_derived_name_collision() {
-    // Tool `Edit` with an inline schema synthesizes `EditParams`, colliding with
-    // a params file of that id (which is kept referenced so the unreferenced
-    // rule does not fire first).
     let edit = "---\nid: Edit\ntype: tool\ntool_schema:\n  target:\n    type: string\n    description: the target\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nEdit.";
     let edit_params = "---\nid: EditParams\ntype: params\ntool_schema:\n  name:\n    type: string\n    description: the name\nannotations:\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\n";
     let use_it = "---\nid: UseIt\ntype: tool\nparams_from: EditParams\nannotations:\n  sent_when: x\n  used_by:\n    - file: a\n      function: b\n  reasoning:\n    - c\n---\nUse it.";
@@ -539,8 +519,6 @@ fn rejects_derived_name_collision() {
         PromptError::DerivedNameCollision { .. }
     ));
 }
-
-// --- Integration: the committed all-three-types fixture tree ---
 
 #[test]
 fn loads_committed_valid_tree() {

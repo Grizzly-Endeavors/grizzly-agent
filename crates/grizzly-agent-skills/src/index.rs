@@ -12,7 +12,6 @@ use std::path::{Path, PathBuf};
 
 use crate::format::{Skill, SkillError, parse_skill};
 
-/// One skill the scan kept, alongside the directory it was loaded from.
 struct IndexedSkill {
     skill: Skill,
     directory: PathBuf,

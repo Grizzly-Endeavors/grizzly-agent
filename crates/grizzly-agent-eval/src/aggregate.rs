@@ -92,7 +92,6 @@ fn count(verdicts: &[Verdict], category: VerdictCategory) -> u32 {
     u32::try_from(matching).unwrap_or(u32::MAX)
 }
 
-/// Integer mean, so no reported average token count is a lossy float.
 fn mean_u64(values: impl Iterator<Item = u64>) -> Option<u64> {
     let mut total: u64 = 0;
     let mut seen: u64 = 0;

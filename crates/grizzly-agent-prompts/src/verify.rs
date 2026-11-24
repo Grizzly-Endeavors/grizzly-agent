@@ -145,8 +145,6 @@ fn walk_sources(
     }
 }
 
-/// `path` relative to `base`, joined with `/` so the key matches a `used_by.file`
-/// value regardless of the host separator.
 fn rel_key(base: &Path, path: &Path) -> Option<String> {
     let rel = path.strip_prefix(base).ok()?;
     let parts: Vec<String> = rel
